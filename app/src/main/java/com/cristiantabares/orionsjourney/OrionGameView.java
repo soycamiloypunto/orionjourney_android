@@ -211,7 +211,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
 
         getHolder().addCallback(this);
         setFocusable(true);
-        audio.playMusic("menu_orion.wav", true);
+        audio.playMusic("menuprincipal.mp3", true);
     }
 
     @Override
@@ -318,7 +318,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                 audio.playSfx("Menu_Click24.wav");
             } else {
                 gameState = STATE_LEVEL_SELECT;
-                audio.playMusic("menu_orion.wav", true);
+                audio.playMusic("menuprincipal.mp3", true);
                 audio.playSfx("Menu_Click24.wav");
             }
             return true;
@@ -332,7 +332,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             return true;
         } else if (gameState == STATE_LEVEL_COMPLETE) {
             gameState = STATE_LEVEL_SELECT;
-            audio.playMusic("menu_orion.wav", true);
+            audio.playMusic("menuprincipal.mp3", true);
             return true;
         } else if (gameState == STATE_LEVEL_SELECT) {
             gameState = STATE_WORLD_SELECT;
@@ -352,7 +352,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         this.storyLastTickChar = 0;
         this.storySlideFade = 0.1f;
         this.gameState = STATE_STORY_CUTSCENE;
-        audio.playMusic("story_intro.wav", true);
+        audio.playMusic("cinematica1.mp3", true);
     }
 
     public void startLevel(int levelNum) {
@@ -383,7 +383,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         if (hasBoss) {
             music = "boss_music.mp3";
         } else if (level.worldNum == 1) {
-            music = "world1_theme.wav";
+            music = "mundo1.mp3";
         } else {
             music = "gameplay_music.mp3";
         }
@@ -739,7 +739,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             float fdy = orionY - level.finishY;
             if (fdx * fdx + fdy * fdy <= 82f * 82f) {
                 audio.playSfx("GiantPuffleOReached.wav");
-                audio.playMusic("level_complete.wav", false);
+                audio.stopMusic(); // Level complete: stop background music and leave without music
                 saveLevelProgress(currentLevelNum, collectedRings);
                 gameState = STATE_LEVEL_COMPLETE;
                 return;
@@ -1030,7 +1030,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                         }
                     } else {
                         gameState = STATE_LEVEL_SELECT;
-                        audio.playMusic("menu_orion.wav", true);
+                        audio.playMusic("menuprincipal.mp3", true);
                     }
                     return true;
                 }
@@ -1124,7 +1124,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                     prefs.edit().putBoolean("turbo_mode", turboMode).apply();
                 } else if (btnPauseLevels.contains(tx, ty)) {
                     audio.playSfx("Menu_Click24.wav");
-                    audio.playMusic("menu_orion.wav", true);
+                    audio.playMusic("menuprincipal.mp3", true);
                     gameState = STATE_LEVEL_SELECT;
                 }
             }
@@ -1150,7 +1150,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                     startLevel(currentLevelNum);
                 } else if (btnWinLevels.contains(tx, ty)) {
                     audio.playSfx("Menu_Click24.wav");
-                    audio.playMusic("menu_orion.wav", true);
+                    audio.playMusic("menuprincipal.mp3", true);
                     gameState = STATE_LEVEL_SELECT;
                 }
             }

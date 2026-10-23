@@ -123,6 +123,11 @@ public class AudioController {
         }
     }
 
+    public synchronized void stopMusic() {
+        currentMusic = "";
+        stopMusicInternal();
+    }
+
     public synchronized void resumeMusic() {
         if (!muted && musicPlayer != null && !musicPlayer.isPlaying()) {
             try {
