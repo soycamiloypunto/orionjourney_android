@@ -181,6 +181,24 @@ public class SpriteCache {
         pauseQuitBtn = loadTrimmed("pause_quit.png");
     }
 
+    public Bitmap getStorySlide(int planoNumber) {
+        String key = "story_plano_" + planoNumber;
+        if (cache.containsKey(key)) {
+            return cache.get(key);
+        }
+        try (InputStream is = context.getAssets().open("story/plano" + planoNumber + ".jpg")) {
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inPreferredConfig = Bitmap.Config.RGB_565;
+            Bitmap bmp = BitmapFactory.decodeStream(is, null, opts);
+            if (bmp != null) {
+                cache.put(key, bmp);
+            }
+            return bmp;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private Bitmap loadRaw(String name) {
         if (cache.containsKey(name)) {
             return cache.get(name);

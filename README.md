@@ -37,6 +37,12 @@ El código fuente principal se encuentra en `app/src/main/java/com/cristiantabar
      - *Cañones Desplazables (`Tipos 12, 13, 17, 18, 19, 20, 21, 22`)*: Se trasladan horizontal o verticalmente en el mapa conservando fijo su eje/ángulo de disparo.
    - **Obstáculos Interactivos y Jefes**:
      - Rebotadores elásticos, globos de impulso, nubes efímeras, corrientes de viento de ventiladores, resorteras vectoriales (`Slingshot`) y batallas contra naves jefe en los niveles **12** y **24**.
+   - **Cinemática Narrativa Interactiva (`STATE_STORY_CUTSCENE`)**:
+     - Sistema de presentación estilo observatorio con **10 planos ilustrados** (`assets/story/plano1.jpg` a `plano10.jpg`) y **16 fragmentos de subtítulos** bilingües (ES/EN) antes del **Nivel 1** (con botón **`🎬 HISTORIA` / `🎬 STORY`** en el selector de niveles para volver a verla en cualquier momento).
+     - Efecto de escritura letra por letra estilo máquina de escribir (*typewriter*) con sonido sutil (`typewriter_tick.wav`), navegación libre (`← ANTERIOR`, `SIGUIENTE →`, toque en pantalla, `SALTAR ⏭` y **`▶ INICIAR NIVEL`** en la última diapositiva) y banda sonora orquestal original melancólica y esperanzadora (`story_intro.wav`).
+   - **Progresión Exigente del 90% y Multilenguaje**:
+     - Desbloqueo progresivo que exige recolectar al menos el **90% de los aros** de cada nivel para habilitar el siguiente nivel y el siguiente mundo.
+     - Selector de idioma en tiempo real (**Español / Inglés**) desde la pantalla principal.
 3. **[`LevelData.java`](app/src/main/java/com/cristiantabares/orionsjourney/LevelData.java)**:
    - Analizador (*parser*) de los **36 niveles** estructurados en archivos de texto plano (`assets/levels/Level1.txt` .. `Level36.txt`), divididos en 3 mundos de 12 niveles cada uno:
      - **Mundo 1**: *Blue Sky* (Niveles 1–12)
@@ -55,9 +61,10 @@ El código fuente principal se encuentra en `app/src/main/java/com/cristiantabar
 app/src/main/
 ├── AndroidManifest.xml
 ├── assets/
-│   ├── audio/          # Música de mundos (.mp3) y efectos de sonido (.wav)
+│   ├── audio/          # Música de mundos (.mp3), banda sonora orquestal (story_intro.wav) y SFX (.wav)
 │   ├── levels/         # Definición de coordenadas y entidades de los 36 niveles (Level1.txt - Level36.txt)
-│   └── sprites/        # Sprites individuales en PNG (Personaje Orion, trajes, cañones, obstáculos y UI)
+│   ├── sprites/        # Sprites individuales en PNG (Personaje Orion, trajes, cañones, obstáculos y UI)
+│   └── story/          # Planos ilustrados de la cinemática (plano1.jpg - plano10.jpg) y guion (historia.txt)
 ├── java/com/cristiantabares/orionsjourney/
 │   ├── AudioController.java
 │   ├── LevelData.java

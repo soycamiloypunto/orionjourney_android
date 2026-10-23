@@ -42,6 +42,7 @@ public class AudioController {
         preloadSfx("BossThruster.wav");
         preloadSfx("SwingAnvil.wav");
         preloadSfx("Menu_Click24.wav");
+        preloadSfx("typewriter_tick.wav");
         preloadSfx("CPW_PuffleCannon_SlingShot_Release01_x3_TwangRubber_CTE02_71.2-TiSh_01-01_sfx.wav");
         preloadSfx("CPW_PuffleCannon_SlingShot_Stretch01_x2_Stretch_Twist2-TiSh_01-01_sfx.wav");
     }

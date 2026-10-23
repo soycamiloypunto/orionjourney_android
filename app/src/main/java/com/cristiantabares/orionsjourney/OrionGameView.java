@@ -26,6 +26,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
     public static final int STATE_PLAYING = 3;
     public static final int STATE_PAUSED = 4;
     public static final int STATE_LEVEL_COMPLETE = 5;
+    public static final int STATE_STORY_CUTSCENE = 6;
 
     private static final int ORION_FREE = 0;
     private static final int ORION_IN_CANNON = 1;
@@ -128,6 +129,58 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
     private final RectF btnWinNext = new RectF();
     private final RectF btnWinReplay = new RectF();
     private final RectF btnWinLevels = new RectF();
+    private final RectF btnReplayCutscene = new RectF();
+    private final RectF btnStoryPrev = new RectF();
+    private final RectF btnStoryNext = new RectF();
+    private final RectF btnStorySkip = new RectF();
+
+    // Intro Cutscene ("La Historia de Orion") state & 16 narrative beats across Planos 1..10
+    private int storyBeatIndex = 0;
+    private float storyTypedProgress = 0f;
+    private int storyLastTickChar = 0;
+    private float storySlideFade = 1.0f;
+
+    private static final int[] STORY_PLANO_NUMS = {
+        1, 2, 3, 4, 5, 6, 7, 8,
+        9, 9,
+        10, 10, 10, 10, 10, 10
+    };
+    private static final String[] STORY_LINES_ES = {
+        "Cuando desperté, el universo ya estaba muerto.",
+        "Los vientos solo arrastraban recuerdos.",
+        "Sin embargo, una última llama seguía resistiendo.",
+        "Allí, entre ruinas olvidadas, alguien esperaba.",
+        "Un arquitecto de imposibles.",
+        "Y yo era su última creación.",
+        "Fragmentos de un pasado perdido cubrían aquellas paredes.",
+        "Entonces la energía volvió a recorrer mis circuitos.",
+        "Una voz quebrada atravesó la oscuridad.",
+        "«Recuerda la canción.»",
+        "Abrí los ojos.",
+        "Y contemplé lo que quedaba del cosmos.",
+        "No recordaba mi propósito.",
+        "No recordaba mi historia.",
+        "Solo aquella canción.",
+        "Y la necesidad de seguirla."
+    };
+    private static final String[] STORY_LINES_EN = {
+        "When I awoke, the universe was already dead.",
+        "The winds carried only memories.",
+        "Yet, one final flame continued to endure.",
+        "There, among forgotten ruins, someone was waiting.",
+        "An architect of the impossible.",
+        "And I was his final creation.",
+        "Fragments of a lost past covered those walls.",
+        "Then energy flowed through my circuits once more.",
+        "A broken voice pierced the darkness.",
+        "\"Remember the song.\"",
+        "I opened my eyes.",
+        "And gazed upon what remained of the cosmos.",
+        "I did not remember my purpose.",
+        "I did not remember my story.",
+        "Only that song.",
+        "And the need to follow it."
+    };
 
     private static final String[] SUIT_NAMES_EN = {
         "Solar", "Cosmic", "Frost", "Amber", "Terra",
@@ -245,7 +298,23 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public boolean handleBackPress() {
-        if (gameState == STATE_PLAYING) {
+        if (gameState == STATE_STORY_CUTSCENE) {
+            if (storyBeatIndex > 0) {
+                int prevPlano = STORY_PLANO_NUMS[storyBeatIndex];
+                storyBeatIndex--;
+                storyTypedProgress = 0f;
+                storyLastTickChar = 0;
+                if (STORY_PLANO_NUMS[storyBeatIndex] != prevPlano) {
+                    storySlideFade = 0.25f;
+                }
+                audio.playSfx("Menu_Click24.wav");
+            } else {
+                gameState = STATE_LEVEL_SELECT;
+                audio.playMusic("menu.mp3", true);
+                audio.playSfx("Menu_Click24.wav");
+            }
+            return true;
+        } else if (gameState == STATE_PLAYING) {
             gameState = STATE_PAUSED;
             audio.playSfx("Menu_Click24.wav");
             return true;
@@ -267,6 +336,15 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             return true;
         }
         return false;
+    }
+
+    public void startStoryCutscene() {
+        this.storyBeatIndex = 0;
+        this.storyTypedProgress = 0f;
+        this.storyLastTickChar = 0;
+        this.storySlideFade = 0.1f;
+        this.gameState = STATE_STORY_CUTSCENE;
+        audio.playMusic("story_intro.wav", true);
     }
 
     public void startLevel(int levelNum) {
@@ -400,6 +478,25 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         animClock += dtSec;
         if (statusBannerTimer > 0f) {
             statusBannerTimer = Math.max(0f, statusBannerTimer - dtSec);
+        }
+        if (gameState == STATE_STORY_CUTSCENE) {
+            if (storySlideFade < 1.0f) {
+                storySlideFade = Math.min(1.0f, storySlideFade + dtSec * 2.2f);
+            }
+            String fullLine = (langEs ? STORY_LINES_ES : STORY_LINES_EN)[storyBeatIndex];
+            if (storyTypedProgress < fullLine.length()) {
+                storyTypedProgress = Math.min((float) fullLine.length(), storyTypedProgress + dtSec * 21f);
+                int curChar = (int) storyTypedProgress;
+                if (curChar > storyLastTickChar && curChar <= fullLine.length()) {
+                    char c = fullLine.charAt(curChar - 1);
+                    if (c != ' ' && (curChar - storyLastTickChar >= 2 || curChar == fullLine.length())) {
+                        storyLastTickChar = curChar;
+                        float pitch = 0.94f + ((curChar % 5) * 0.03f);
+                        audio.playSfxPitch("typewriter_tick.wav", pitch);
+                    }
+                }
+            }
+            return;
         }
         if (gameState != STATE_PLAYING || level == null) {
             return;
@@ -894,11 +991,68 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             return true;
         }
 
+        if (gameState == STATE_STORY_CUTSCENE) {
+            if (action == MotionEvent.ACTION_DOWN) {
+                if (btnStorySkip.contains(tx, ty)) {
+                    audio.playSfx("Menu_Click24.wav");
+                    prefs.edit().putBoolean("intro_seen", true).apply();
+                    startLevel(1);
+                    return true;
+                }
+                if (btnStoryPrev.contains(tx, ty)) {
+                    audio.playSfx("Menu_Click24.wav");
+                    if (storyBeatIndex > 0) {
+                        int prevPlano = STORY_PLANO_NUMS[storyBeatIndex];
+                        storyBeatIndex--;
+                        storyTypedProgress = 0f;
+                        storyLastTickChar = 0;
+                        if (STORY_PLANO_NUMS[storyBeatIndex] != prevPlano) {
+                            storySlideFade = 0.25f;
+                        }
+                    } else {
+                        gameState = STATE_LEVEL_SELECT;
+                        audio.playMusic("menu.mp3", true);
+                    }
+                    return true;
+                }
+
+                // Tapping Next button OR anywhere on the screen/slide advances the typewriter or slide
+                String fullLine = (langEs ? STORY_LINES_ES : STORY_LINES_EN)[storyBeatIndex];
+                if (storyTypedProgress < fullLine.length()) {
+                    // Complete the typewriter text immediately on first tap
+                    storyTypedProgress = fullLine.length();
+                    storyLastTickChar = fullLine.length();
+                    audio.playSfxPitch("typewriter_tick.wav", 1.05f);
+                } else {
+                    audio.playSfx("Menu_Click24.wav");
+                    if (storyBeatIndex < STORY_PLANO_NUMS.length - 1) {
+                        int prevPlano = STORY_PLANO_NUMS[storyBeatIndex];
+                        storyBeatIndex++;
+                        storyTypedProgress = 0f;
+                        storyLastTickChar = 0;
+                        if (STORY_PLANO_NUMS[storyBeatIndex] != prevPlano) {
+                            storySlideFade = 0.2f;
+                        }
+                    } else {
+                        // Final slide button: Start Level 1
+                        prefs.edit().putBoolean("intro_seen", true).apply();
+                        startLevel(1);
+                    }
+                }
+            }
+            return true;
+        }
+
         if (gameState == STATE_LEVEL_SELECT) {
             if (action == MotionEvent.ACTION_DOWN) {
                 if (btnBack.contains(tx, ty)) {
                     audio.playSfx("Menu_Click24.wav");
                     gameState = STATE_WORLD_SELECT;
+                    return true;
+                }
+                if (btnReplayCutscene.contains(tx, ty)) {
+                    audio.playSfx("Menu_Click24.wav");
+                    startStoryCutscene();
                     return true;
                 }
                 if (btnTurboToggle.contains(tx, ty)) {
@@ -912,7 +1066,11 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                         audio.playSfx("Menu_Click24.wav");
                         int lvl = (selectedWorld - 1) * 12 + (i + 1);
                         if (isLevelUnlocked(lvl)) {
-                            startLevel(lvl);
+                            if (lvl == 1) {
+                                startStoryCutscene();
+                            } else {
+                                startLevel(lvl);
+                            }
                         } else {
                             int reqLvl = lvl - 1;
                             for (int p = 1; p < lvl; p++) {
@@ -1090,6 +1248,8 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             renderWorldSelect(canvas, w, h);
         } else if (gameState == STATE_LEVEL_SELECT) {
             renderLevelSelect(canvas, w, h);
+        } else if (gameState == STATE_STORY_CUTSCENE) {
+            renderStoryCutscene(canvas, w, h);
         } else {
             renderGameplay(canvas, w, h);
             if (gameState == STATE_PAUSED) {
@@ -1303,21 +1463,24 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         canvas.drawColor(worldBg[(selectedWorld - 1) % 3]);
 
         btnBack.set(w * 0.03f, h * 0.05f, w * 0.17f, h * 0.15f);
-        drawStylizedButton(canvas, btnBack, Color.rgb(231, 76, 60), langEs ? "← MUNDOS" : "← WORLDS", h * 0.032f);
+        drawStylizedButton(canvas, btnBack, Color.rgb(231, 76, 60), langEs ? "← MUNDOS" : "← WORLDS", h * 0.030f);
 
-        btnTurboToggle.set(w * 0.73f, h * 0.05f, w * 0.97f, h * 0.15f);
+        btnReplayCutscene.set(w * 0.185f, h * 0.05f, w * 0.345f, h * 0.15f);
+        drawStylizedButton(canvas, btnReplayCutscene, Color.rgb(140, 90, 50), langEs ? "🎬 HISTORIA" : "🎬 STORY", h * 0.028f);
+
+        btnTurboToggle.set(w * 0.75f, h * 0.05f, w * 0.97f, h * 0.15f);
         drawStylizedButton(canvas, btnTurboToggle,
                 turboMode ? Color.rgb(243, 156, 18) : Color.rgb(52, 73, 94),
                 langEs ? (turboMode ? "MODO TURBO: SÍ 🔥" : "MODO TURBO: NO")
-                       : (turboMode ? "TURBO MODE: ON 🔥" : "TURBO MODE: OFF"), h * 0.030f);
+                       : (turboMode ? "TURBO MODE: ON 🔥" : "TURBO MODE: OFF"), h * 0.028f);
 
         String[] worldNames = langEs
                 ? new String[]{"MUNDO 1: CIELO AZUL", "MUNDO 2: HORIZONTE OCASO", "MUNDO 3: DIMENSIÓN CAJA"}
                 : new String[]{"WORLD 1: BLUE SKY", "WORLD 2: SUNSET HORIZON", "WORLD 3: BOX DIMENSION"};
         textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(h * 0.048f);
+        textPaint.setTextSize(h * 0.042f);
         textPaint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(worldNames[(selectedWorld - 1) % 3], w * 0.45f, h * 0.12f, textPaint);
+        canvas.drawText(worldNames[(selectedWorld - 1) % 3], w * 0.545f, h * 0.118f, textPaint);
 
         int cols = 4;
         int rows = 3;
@@ -1394,6 +1557,141 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                 canvas.drawText("REQ 90%", pillRect.centerX(), pillRect.centerY() + h * 0.008f, textPaint);
             }
         }
+    }
+
+    private void renderStoryCutscene(Canvas canvas, int w, int h) {
+        // Deep melancholic observatory/cinema backdrop
+        canvas.drawColor(Color.rgb(16, 14, 13));
+
+        int beatIdx = Math.max(0, Math.min(STORY_PLANO_NUMS.length - 1, storyBeatIndex));
+        int planoNum = STORY_PLANO_NUMS[beatIdx];
+        Bitmap slideBmp = sprites.getStorySlide(planoNum);
+
+        // Top section: 16:9 Scene Image Frame (h * 0.03f to h * 0.71f)
+        float maxImgH = h * 0.67f;
+        float maxImgW = w * 0.88f;
+        float imgH = maxImgH;
+        float imgW = imgH * (16f / 9f);
+        if (imgW > maxImgW) {
+            imgW = maxImgW;
+            imgH = imgW * (9f / 16f);
+        }
+        float imgLeft = (w - imgW) * 0.5f;
+        float imgTop = h * 0.035f + (maxImgH - imgH) * 0.5f;
+        RectF imgFrame = new RectF(imgLeft, imgTop, imgLeft + imgW, imgTop + imgH);
+
+        // Subtle outer glow & shadow around the artwork frame
+        RectF outerFrame = new RectF(imgFrame.left - 5f, imgFrame.top - 5f, imgFrame.right + 5f, imgFrame.bottom + 5f);
+        paint.setColor(Color.rgb(34, 28, 24));
+        canvas.drawRoundRect(outerFrame, 16f, 16f, paint);
+
+        if (slideBmp != null) {
+            int alpha = Math.max(0, Math.min(255, (int) (storySlideFade * 255f)));
+            paint.setAlpha(alpha);
+            canvas.drawBitmap(slideBmp, null, imgFrame, paint);
+            paint.setAlpha(255);
+        }
+
+        // Warm weathered-bronze border around the scene image
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(3.5f);
+        paint.setColor(Color.rgb(175, 132, 85));
+        canvas.drawRoundRect(imgFrame, 10f, 10f, paint);
+        paint.setStyle(Paint.Style.FILL);
+
+        // Top-left Plano indicator pill
+        RectF planoBadge = new RectF(w * 0.03f, h * 0.04f, w * 0.17f, h * 0.115f);
+        paint.setColor(Color.argb(210, 24, 20, 18));
+        canvas.drawRoundRect(planoBadge, 14f, 14f, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(2f);
+        paint.setColor(Color.rgb(175, 132, 85));
+        canvas.drawRoundRect(planoBadge, 14f, 14f, paint);
+        paint.setStyle(Paint.Style.FILL);
+
+        textPaint.setColor(Color.rgb(235, 215, 185));
+        textPaint.setTextSize(h * 0.025f);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText((langEs ? "PLANO " : "SCENE ") + planoNum + " / 10",
+                planoBadge.centerX(), planoBadge.centerY() + h * 0.009f, textPaint);
+
+        // Top-right Skip button
+        btnStorySkip.set(w * 0.83f, h * 0.04f, w * 0.97f, h * 0.115f);
+        drawStylizedButton(canvas, btnStorySkip, Color.rgb(68, 58, 52),
+                langEs ? "SALTAR ⏭" : "SKIP ⏭", h * 0.024f);
+
+        // Bottom section: Rosalina-style storybook subtitle box & navigation controls
+        RectF subBox = new RectF(w * 0.03f, h * 0.725f, w * 0.97f, h * 0.965f);
+        paint.setColor(Color.argb(242, 24, 20, 18));
+        canvas.drawRoundRect(subBox, 22f, 22f, paint);
+
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(3f);
+        paint.setColor(Color.rgb(185, 142, 92));
+        canvas.drawRoundRect(subBox, 22f, 22f, paint);
+        paint.setStyle(Paint.Style.FILL);
+
+        // Left button: Previous slide / Exit
+        btnStoryPrev.set(w * 0.045f, h * 0.765f, w * 0.205f, h * 0.925f);
+        String prevLabel = (beatIdx > 0)
+                ? (langEs ? "← ANTERIOR" : "← BACK")
+                : (langEs ? "← SALIR" : "← EXIT");
+        drawStylizedButton(canvas, btnStoryPrev,
+                (beatIdx > 0) ? Color.rgb(92, 74, 60) : Color.rgb(70, 56, 48),
+                prevLabel, h * 0.025f);
+
+        // Right button: Next slide OR Start Level 1 on the final beat
+        boolean isLastBeat = (beatIdx == STORY_PLANO_NUMS.length - 1);
+        btnStoryNext.set(w * 0.785f, h * 0.765f, w * 0.955f, h * 0.925f);
+        String nextLabel = isLastBeat
+                ? (langEs ? "▶ INICIAR NIVEL" : "▶ START LEVEL")
+                : (langEs ? "SIGUIENTE →" : "NEXT →");
+        int nextColor = isLastBeat ? Color.rgb(34, 153, 120) : Color.rgb(176, 112, 52);
+        drawStylizedButton(canvas, btnStoryNext, nextColor, nextLabel, h * 0.025f);
+
+        // Typewriter subtitle text in the center area (between Prev and Next buttons)
+        String fullLine = (langEs ? STORY_LINES_ES : STORY_LINES_EN)[beatIdx];
+        int charCount = Math.max(0, Math.min(fullLine.length(), (int) storyTypedProgress));
+        String visibleLine = fullLine.substring(0, charCount);
+        boolean typingDone = (charCount >= fullLine.length());
+        String cursor = !typingDone ? "▌" : (((int) (animClock * 2.5f) % 2 == 0) ? "  ✦" : "");
+
+        textPaint.setColor(Color.rgb(245, 238, 225));
+        textPaint.setTextSize(h * 0.034f);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        float textCenterX = (btnStoryPrev.right + btnStoryNext.left) * 0.5f;
+        float maxTextW = (btnStoryNext.left - btnStoryPrev.right) - w * 0.04f;
+
+        if (textPaint.measureText(fullLine + "  ✦") <= maxTextW) {
+            canvas.drawText(visibleLine + cursor, textCenterX, subBox.top + subBox.height() * 0.48f, textPaint);
+        } else {
+            // Split fullLine into 2 balanced lines at word boundary, then reveal up to charCount
+            int splitPos = fullLine.length() / 2;
+            int spaceBefore = fullLine.lastIndexOf(' ', splitPos);
+            int spaceAfter = fullLine.indexOf(' ', splitPos);
+            if (spaceBefore > 0 && (spaceAfter < 0 || (splitPos - spaceBefore) <= (spaceAfter - splitPos))) {
+                splitPos = spaceBefore;
+            } else if (spaceAfter > 0) {
+                splitPos = spaceAfter;
+            }
+            if (charCount <= splitPos) {
+                canvas.drawText(visibleLine + cursor, textCenterX, subBox.top + subBox.height() * 0.36f, textPaint);
+            } else {
+                String line1 = fullLine.substring(0, splitPos);
+                String line2 = fullLine.substring(Math.min(fullLine.length(), splitPos + 1), charCount);
+                canvas.drawText(line1, textCenterX, subBox.top + subBox.height() * 0.34f, textPaint);
+                canvas.drawText(line2 + cursor, textCenterX, subBox.top + subBox.height() * 0.57f, textPaint);
+            }
+        }
+
+        // Subtle footer prompt inside subtitle panel
+        textPaint.setColor(Color.rgb(165, 148, 130));
+        textPaint.setTextSize(h * 0.022f);
+        String footerPrompt = isLastBeat
+                ? (langEs ? "Fin del prólogo • Pulsa ▶ INICIAR NIVEL para comenzar" : "End of prologue • Tap ▶ START LEVEL to begin")
+                : (langEs ? ("Fragmento " + (beatIdx + 1) + " de " + STORY_PLANO_NUMS.length + " • Toca la pantalla o SIGUIENTE para avanzar")
+                          : ("Part " + (beatIdx + 1) + " of " + STORY_PLANO_NUMS.length + " • Tap screen or NEXT to continue"));
+        canvas.drawText(footerPrompt, textCenterX, subBox.bottom - h * 0.026f, textPaint);
     }
 
     private void renderGameplay(Canvas canvas, int w, int h) {
