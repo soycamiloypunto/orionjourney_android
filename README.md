@@ -76,7 +76,12 @@ app/src/main/
 │   ├── OrionGameView.java
 │   └── SpriteCache.java
 └── res/
-    ├── drawable/       # Icono vectorial de lanzamiento
+    ├── drawable/       # Recursos gráficos generales y tema Fullscreen
+    ├── mipmap-mdpi/    # Iconos estándar y redondos 48x48 px
+    ├── mipmap-hdpi/    # Iconos estándar y redondos 72x72 px
+    ├── mipmap-xhdpi/   # Iconos estándar y redondos 96x96 px
+    ├── mipmap-xxhdpi/  # Iconos estándar y redondos 144x144 px
+    ├── mipmap-xxxhdpi/ # Iconos estándar y redondos 192x192 px
     ├── values/         # Strings en inglés y tema Fullscreen
     └── values-es/      # Strings localizados en español
 ```
