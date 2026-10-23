@@ -1883,43 +1883,48 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
 
         // Background Elements: Static Grounded Ruined Towers & Floating Rubble for World 1, or Clouds for World 2/3
         if (level.worldNum == 1) {
-            // A) Static Ruined Buildings: Only 2 (or 3 in wide levels) widely separated structures emerging from the ground
+            // A) Static Ruined Skyscraper Towers: Towering vertically so Orion matches window/floor scale
             float minLevelX = Math.min(level.spawnX, level.finishX) - 450f;
             float maxLevelX = Math.max(level.spawnX, level.finishX) + 450f;
             float span = Math.max(1200f, maxLevelX - minLevelX);
 
-            float[] bFractions = (span > 1800f) ? new float[]{0.18f, 0.52f, 0.84f} : new float[]{0.25f, 0.75f};
+            float[] bFractions = (span > 1800f) ? new float[]{0.18f, 0.52f, 0.84f} : new float[]{0.22f, 0.76f};
             Bitmap[] bRuins = { sprites.world1Ruins[0], sprites.world1Ruins[1], sprites.world1Ruins[2] };
 
             for (int b = 0; b < bFractions.length; b++) {
                 Bitmap bBmp = bRuins[b % bRuins.length];
                 if (bBmp != null) {
                     float bx = minLevelX + span * bFractions[b];
-                    float bH = 680f;
+                    float bH = 1650f; // Soaring colossal skyscraper height
                     float bW = bH * ((float) bBmp.getWidth() / bBmp.getHeight());
                     float bL = bx - bW * 0.5f;
                     float bR = bL + bW;
                     // Frustum culling: only draw if in camera view
                     if (bR >= camLeft && bL <= camRight) {
-                        float bBottom = level.groundY + 45f; // Buried in dunes so the bottom edge is hidden naturally
+                        float bBottom = level.groundY + 450f; // Base and rubble firmly rooted deep under the dunes
                         float bTop = bBottom - bH;
                         rect.set(bL, bTop, bR, bBottom);
-                        // Static, completely still
+                        // Static, towering ruins
                         canvas.drawBitmap(bBmp, null, rect, null);
                     }
                 }
             }
 
-            // B) Zero-Gravity Debris: Only 4 small floating rock shards, gently bobbing in cosmic space
-            for (int r = 0; r < 4; r++) {
-                float rx = minLevelX + span * (0.16f + r * 0.23f);
-                float ry = Math.min(level.spawnY, level.finishY) + ((r * 170f) % 450f) - 60f;
+            // B) Zero-Gravity Debris: 7 floating rock shards of varied sizes, gently bobbing in cosmic space
+            float[] rockScales = { 0.24f, 0.48f, 0.32f, 0.55f, 0.28f, 0.42f, 0.36f };
+            float[] rockFractions = { 0.12f, 0.26f, 0.39f, 0.54f, 0.68f, 0.81f, 0.92f };
+            float[] rockYOffsets = { -120f, 180f, 40f, -80f, 220f, 10f, -160f };
+
+            for (int r = 0; r < 7; r++) {
+                float rx = minLevelX + span * rockFractions[r];
+                float ry = Math.min(level.spawnY, level.finishY) + rockYOffsets[r];
                 Bitmap rockBmp = sprites.menuRocks[r % sprites.menuRocks.length];
                 if (rockBmp != null) {
-                    if (rx + 45f >= camLeft && rx - 45f <= camRight) {
-                        float bobY = (float) Math.sin(animClock * 1.05f + r * 1.6f) * 10f;
-                        float bobRot = (float) Math.sin(animClock * 0.55f + r * 1.1f) * 5f;
-                        drawBitmapCentered(canvas, rockBmp, rx, ry + bobY, 0.42f, 0.42f, bobRot, 205);
+                    if (rx + 60f >= camLeft && rx - 60f <= camRight) {
+                        float bobY = (float) Math.sin(animClock * (0.85f + (r % 3) * 0.25f) + r * 1.4f) * 12f;
+                        float bobRot = (float) Math.sin(animClock * 0.45f + r * 1.1f) * 6f;
+                        int rockAlpha = (r % 2 == 0) ? 220 : 185;
+                        drawBitmapCentered(canvas, rockBmp, rx, ry + bobY, rockScales[r], rockScales[r], bobRot, rockAlpha);
                     }
                 }
             }
@@ -1937,20 +1942,19 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         // Ground / Ceiling FallZone
         if (level.worldNum == 1 && sprites.world1DeathDunes != null) {
             // Ashen Dunes Death Zone: Organic, seamless sand dunes undulating naturally
-            // The crest of the sand dunes sits around level.groundY
-            float duneH = 460f;
+            float duneH = 520f;
             float duneW = duneH * ((float) sprites.world1DeathDunes.getWidth() / sprites.world1DeathDunes.getHeight());
-            float topY = level.groundY - 35f;
-            float startTile = (float) Math.floor(camLeft / duneW) * duneW;
-            float endTile = camRight + duneW;
+            float topY = level.groundY - 140f;
+            float startTile = (float) Math.floor((camLeft - duneW * 1.5f) / duneW) * duneW;
+            float endTile = camRight + duneW * 1.5f;
 
-            // Deep sand bedrock below the dune crests (culled to visible viewport)
-            paint.setColor(Color.rgb(138, 118, 92));
-            canvas.drawRect(camLeft - 100f, topY + duneH - 4f, camRight + 100f, topY + duneH + 1200f, paint);
+            // Deep sand bedrock below the dune crests (wide margin to ensure zero gaps)
+            paint.setColor(Color.rgb(130, 108, 80));
+            canvas.drawRect(camLeft - 500f, topY + duneH - 45f, camRight + 500f, topY + duneH + 2500f, paint);
 
-            // Undulating, seamless dunes along the death horizon (strictly visible tiles)
+            // Undulating, seamless dunes along the death horizon
             for (float tx = startTile; tx < endTile; tx += duneW) {
-                rect.set(tx, topY, tx + duneW, topY + duneH);
+                rect.set(tx, topY, tx + duneW + 2f, topY + duneH);
                 canvas.drawBitmap(sprites.world1DeathDunes, null, rect, null);
             }
             // Note: NO artificial horizontal line in World 1; the natural dunes form the boundary
@@ -2145,9 +2149,11 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                 double rad = Math.toRadians(c.currentAngleDeg);
                 float dx = (float) Math.cos(rad);
                 float dy = (float) Math.sin(rad);
-                paint.setColor(Color.argb(210, 255, 245, 120));
+                // Subtle, translucent trajectory dots (guides lightly without being an intrusive laser line)
                 for (int d = 1; d <= 6; d++) {
-                    canvas.drawCircle(c.x + dx * (d * 34f), c.y + dy * (d * 34f), 6f, paint);
+                    int dotAlpha = (int) (60f * (1.0f - (d - 1) / 6.5f)); // Soft fade from 60 down to 10
+                    paint.setColor(Color.argb(dotAlpha, 255, 245, 140));
+                    canvas.drawCircle(c.x + dx * (d * 30f), c.y + dy * (d * 30f), 3.2f, paint);
                 }
             }
 
@@ -2190,17 +2196,34 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
 
     private void renderHud(Canvas canvas, int w, int h) {
         RectF badge = new RectF(w * 0.025f, h * 0.035f, w * 0.30f, h * 0.145f);
-        paint.setColor(Color.argb(165, 10, 25, 50));
-        canvas.drawRoundRect(badge, 22f, 22f, paint);
+
+        // 1. Subtle drop shadow matching action buttons on the right
+        rect.set(badge.left + 2f, badge.top + 4f, badge.right + 2f, badge.bottom + 4f);
+        paint.setColor(Color.argb(145, 8, 6, 5));
+        canvas.drawRoundRect(rect, 18f, 18f, paint);
+
+        // 2. Rich vertical metallic obsidian/navy gradient
+        paint.setShader(new LinearGradient(0, badge.top, 0, badge.bottom,
+                Color.rgb(26, 52, 76), Color.rgb(13, 26, 40), Shader.TileMode.CLAMP));
+        canvas.drawRoundRect(badge, 18f, 18f, paint);
+        paint.setShader(null);
+
+        // 3. Crisp Cerulean Cyan metallic border matching the HUD buttons
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(3.5f);
+        paint.setColor(Color.rgb(52, 152, 219));
+        canvas.drawRoundRect(badge, 18f, 18f, paint);
+        paint.setStyle(Paint.Style.FILL);
+
         if (sprites.ringOrange != null) {
-            float sc = (badge.height() * 0.72f) / sprites.ringOrange.getHeight();
-            drawBitmapCentered(canvas, sprites.ringOrange, badge.left + badge.height() * 0.55f, badge.centerY(), sc, sc, 0f, 255);
+            float sc = (badge.height() * 0.68f) / sprites.ringOrange.getHeight();
+            drawBitmapCentered(canvas, sprites.ringOrange, badge.left + badge.height() * 0.52f, badge.centerY(), sc, sc, 0f, 255);
         }
         int curPct = totalLevelRings > 0 ? (collectedRings * 100) / totalLevelRings : 100;
         textPaint.setColor(curPct >= 90 ? Color.rgb(110, 255, 145) : Color.rgb(255, 230, 90));
         textPaint.setTextSize(h * 0.038f);
         textPaint.setTextAlign(Paint.Align.LEFT);
-        canvas.drawText(collectedRings + "/" + totalLevelRings + " (" + curPct + "%)", badge.left + badge.height() * 1.02f, badge.centerY() + h * 0.014f, textPaint);
+        canvas.drawText(collectedRings + "/" + totalLevelRings + " (" + curPct + "%)", badge.left + badge.height() * 0.98f, badge.centerY() + h * 0.014f, textPaint);
 
         textPaint.setColor(Color.WHITE);
         textPaint.setTextSize(h * 0.035f);
