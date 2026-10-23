@@ -28,13 +28,13 @@ El código fuente principal se encuentra en `app/src/main/java/com/cristiantabar
    - Gestiona el ciclo de vida de Android (`onResume`, `onPause`, `onDestroy`), la configuración de pantalla completa inmersiva (`WindowInsetsController`) y la navegación hacia atrás entre niveles, selector de mundos y menú principal.
 2. **[`OrionGameView.java`](app/src/main/java/com/cristiantabares/orionsjourney/OrionGameView.java)**:
    - **Game Loop y Física Balística**: Hilo dedicado (`OrionGameThread`) con paso de tiempo delta (`dtSec`), integración cinemática con **3 sub-pasos por frame** para detección continua de colisiones, gravedad calibrada, resistencia aerodinámica y control de dirección en el aire mediante acelerómetro (**TILT**) o controles táctiles (**TOUCH**).
-   - **Sistemas de Cañones**:
-     - *Cañones Automáticos (`Tipo 1`)*: Disparo inmediato en dirección fija.
-     - *Cañones Fijos Manuales (`Tipo 11`)*: Mantienen su ángulo fijo esperando el toque del jugador.
-     - *Cañones Oscilantes y Rotatorios (`Tipos 2–10, 14`)*: Oscilación por pasos angulares con o sin pausa intermedia.
-     - *Cañones de Rotación Libre (`Tipo 15`)*: Controlados por el jugador para apuntar en $360^\circ$.
-     - *Cañones Checkpoint (`Tipo 16`)*: Guardan el punto de reaparición activo dentro del nivel.
-     - *Cañones Desplazables (`Tipos 12, 13, 17, 18, 19, 20, 21, 22`)*: Se trasladan horizontal o verticalmente en el mapa conservando fijo su eje/ángulo de disparo.
+   - **Sistemas de Cañones y Propulsores Futuristas (Modelos 360° Metalizados)**:
+     - *Azul Normal (`cannon_blue.png`)*: Cápsula táctil de disparo manual fijo con aletas estabilizadoras y flecha direccional hacia la boquilla.
+     - *Rojo Rápido (`cannon_red.png`)*: Propulsor blindado de alta velocidad con turbinas laterales, llama de escape y franjas de advertencia.
+     - *Morado Direccionable 360° (`cannon_purple.png`)*: Cañón rotatorio con pantalla de radar, visor óptico y engranaje de orientación accionado por el jugador.
+     - *Amarillo Checkpoint (`cannon_checkpoint.png`)*: Módulo de exploración solar con indicador de bandera y aura holográfica de punto de control al activarse.
+     - *Verde Automático (`cannon_green.png`)*: Drone de lanzamiento inmediato con ojo robótico, cables de potencia y boquilla de plasma.
+     - *Cañones Desplazables (`Tipos 12, 13, 17, 18, 19, 20, 21, 22`)*: Se trasladan horizontal o verticalmente en el mapa conservando fijo su ángulo de propulsión.
    - **Obstáculos Interactivos y Jefes**:
      - Rebotadores elásticos, globos de impulso, nubes efímeras, corrientes de viento de ventiladores, resorteras vectoriales (`Slingshot`) y batallas contra naves jefe en los niveles **12** y **24**.
    - **Menú Principal con Parallax 2D Multicapa y Estética Post-Apocalíptica**:

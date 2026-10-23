@@ -2089,10 +2089,22 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             }
 
             float recoilScale = 1.0f + c.recoilAnim * 0.22f;
-            drawBitmapCentered(canvas, cbmp, c.x, c.y, 0.92f * recoilScale, 0.92f * recoilScale, c.currentAngleDeg, 255);
+            float cannonScale = 0.75f * recoilScale;
+            drawBitmapCentered(canvas, cbmp, c.x, c.y, cannonScale, cannonScale, c.currentAngleDeg, 255);
 
-            if (c.isCheckpoint && c.checkpointTriggered && sprites.checkpointFlag != null) {
-                drawBitmapCentered(canvas, sprites.checkpointFlag, c.x, c.y - 54f, 0.85f, 0.85f, 0f, 255);
+            if (c.isCheckpoint && c.checkpointTriggered) {
+                float auraPulse = 1.0f + 0.05f * (float) Math.sin(animClock * 4.5f);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(2.5f);
+                paint.setColor(Color.argb(145, 255, 215, 60));
+                canvas.drawCircle(c.x, c.y, 46f * auraPulse, paint);
+                paint.setColor(Color.argb(60, 255, 235, 120));
+                canvas.drawCircle(c.x, c.y, 55f * auraPulse, paint);
+                paint.setStyle(Paint.Style.FILL);
+
+                if (sprites.checkpointFlag != null) {
+                    drawBitmapCentered(canvas, sprites.checkpointFlag, c.x, c.y - 54f, 0.85f, 0.85f, 0f, 255);
+                }
             }
         }
 
