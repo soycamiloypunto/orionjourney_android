@@ -1869,28 +1869,59 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         canvas.scale(camZoom, camZoom);
         canvas.translate(-camX, -camY);
 
-        // Background Elements: Levitating Ruined Structures for World 1, or Clouds for World 2/3
-        if (level.worldNum == 1 && sprites.world1Ruins[0] != null) {
-            Bitmap[] ruinsPool = {
-                sprites.world1Ruins[0], sprites.world1Ruins[1], sprites.world1Ruins[2],
-                sprites.menuRuins[0], sprites.menuRuins[1], sprites.menuRuins[2], sprites.menuRuins[3]
-            };
-            for (int i = 0; i < level.backgrounds.size(); i++) {
-                LevelData.BgElement bg = level.backgrounds.get(i);
-                Bitmap rBmp = ruinsPool[(Math.abs(bg.type) + i) % ruinsPool.length];
-                if (rBmp != null) {
-                    float levitateY = (float) Math.sin(animClock * 0.95f + bg.x * 0.0035f + i * 1.4f) * 18f;
-                    float levitateRot = (float) Math.sin(animClock * 0.45f + i * 1.3f) * 2.6f;
-                    float scX = bg.scaleX * 1.05f;
-                    float scY = bg.scaleY * 1.05f;
-                    drawBitmapCentered(canvas, rBmp, bg.x, bg.y + levitateY, scX, scY, levitateRot, 215);
+        float viewHalfW = (w * 0.5f) / camZoom;
+        float camLeft = camX - viewHalfW - 120f;
+        float camRight = camX + viewHalfW + 120f;
+
+        // Background Elements: Static Grounded Ruined Towers & Floating Rubble for World 1, or Clouds for World 2/3
+        if (level.worldNum == 1) {
+            // A) Static Ruined Buildings: Only 2 (or 3 in wide levels) widely separated structures emerging from the ground
+            float minLevelX = Math.min(level.spawnX, level.finishX) - 450f;
+            float maxLevelX = Math.max(level.spawnX, level.finishX) + 450f;
+            float span = Math.max(1200f, maxLevelX - minLevelX);
+
+            float[] bFractions = (span > 1800f) ? new float[]{0.18f, 0.52f, 0.84f} : new float[]{0.25f, 0.75f};
+            Bitmap[] bRuins = { sprites.world1Ruins[0], sprites.world1Ruins[1], sprites.world1Ruins[2] };
+
+            for (int b = 0; b < bFractions.length; b++) {
+                Bitmap bBmp = bRuins[b % bRuins.length];
+                if (bBmp != null) {
+                    float bx = minLevelX + span * bFractions[b];
+                    float bH = 680f;
+                    float bW = bH * ((float) bBmp.getWidth() / bBmp.getHeight());
+                    float bL = bx - bW * 0.5f;
+                    float bR = bL + bW;
+                    // Frustum culling: only draw if in camera view
+                    if (bR >= camLeft && bL <= camRight) {
+                        float bBottom = level.groundY + 45f; // Buried in dunes so the bottom edge is hidden naturally
+                        float bTop = bBottom - bH;
+                        rect.set(bL, bTop, bR, bBottom);
+                        // Static, completely still
+                        canvas.drawBitmap(bBmp, null, rect, null);
+                    }
+                }
+            }
+
+            // B) Zero-Gravity Debris: Only 4 small floating rock shards, gently bobbing in cosmic space
+            for (int r = 0; r < 4; r++) {
+                float rx = minLevelX + span * (0.16f + r * 0.23f);
+                float ry = Math.min(level.spawnY, level.finishY) + ((r * 170f) % 450f) - 60f;
+                Bitmap rockBmp = sprites.menuRocks[r % sprites.menuRocks.length];
+                if (rockBmp != null) {
+                    if (rx + 45f >= camLeft && rx - 45f <= camRight) {
+                        float bobY = (float) Math.sin(animClock * 1.05f + r * 1.6f) * 10f;
+                        float bobRot = (float) Math.sin(animClock * 0.55f + r * 1.1f) * 5f;
+                        drawBitmapCentered(canvas, rockBmp, rx, ry + bobY, 0.42f, 0.42f, bobRot, 205);
+                    }
                 }
             }
         } else {
             for (LevelData.BgElement bg : level.backgrounds) {
-                Bitmap bmp = sprites.bgClouds[Math.abs(bg.type - 1) % sprites.bgClouds.length];
-                if (bmp != null) {
-                    drawBitmapCentered(canvas, bmp, bg.x, bg.y, bg.scaleX * 0.85f, bg.scaleY * 0.85f, 0f, 195);
+                if (bg.x + 150f >= camLeft && bg.x - 150f <= camRight) {
+                    Bitmap bmp = sprites.bgClouds[Math.abs(bg.type - 1) % sprites.bgClouds.length];
+                    if (bmp != null) {
+                        drawBitmapCentered(canvas, bmp, bg.x, bg.y, bg.scaleX * 0.85f, bg.scaleY * 0.85f, 0f, 195);
+                    }
                 }
             }
         }
@@ -1902,14 +1933,14 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             float duneH = 460f;
             float duneW = duneH * ((float) sprites.world1DeathDunes.getWidth() / sprites.world1DeathDunes.getHeight());
             float topY = level.groundY - 35f;
-            float startTile = (float) Math.floor((camX - 3500f) / duneW) * duneW;
-            float endTile = camX + 3500f;
+            float startTile = (float) Math.floor(camLeft / duneW) * duneW;
+            float endTile = camRight + duneW;
 
-            // Deep sand bedrock below the dune crests
+            // Deep sand bedrock below the dune crests (culled to visible viewport)
             paint.setColor(Color.rgb(138, 118, 92));
-            canvas.drawRect(camX - 3500f, topY + duneH - 4f, camX + 3500f, topY + duneH + 2500f, paint);
+            canvas.drawRect(camLeft - 100f, topY + duneH - 4f, camRight + 100f, topY + duneH + 1200f, paint);
 
-            // Undulating, seamless dunes along the death horizon
+            // Undulating, seamless dunes along the death horizon (strictly visible tiles)
             for (float tx = startTile; tx < endTile; tx += duneW) {
                 rect.set(tx, topY, tx + duneW, topY + duneH);
                 canvas.drawBitmap(sprites.world1DeathDunes, null, rect, null);
@@ -1918,10 +1949,10 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         } else {
             paint.setColor(level.worldNum == 2 ? Color.argb(190, 180, 60, 20)
                     : Color.argb(190, 55, 10, 90));
-            canvas.drawRect(camX - 4000f, level.groundY, camX + 4000f, level.groundY + 1200f, paint);
+            canvas.drawRect(camLeft - 200f, level.groundY, camRight + 200f, level.groundY + 1200f, paint);
             paint.setColor(Color.argb(210, 255, 255, 255));
             paint.setStrokeWidth(6f);
-            canvas.drawLine(camX - 4000f, level.groundY, camX + 4000f, level.groundY, paint);
+            canvas.drawLine(camLeft - 200f, level.groundY, camRight + 200f, level.groundY, paint);
         }
 
         if (level.worldNum >= 3) {
