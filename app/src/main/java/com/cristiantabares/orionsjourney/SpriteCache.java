@@ -45,6 +45,9 @@ public class SpriteCache {
     public Bitmap crabbyClaw;
     public final Bitmap[] bgClouds = new Bitmap[12];
     public final Bitmap[] worldScenes = new Bitmap[3];
+    public Bitmap menuWallpaper;
+    public final Bitmap[] menuRuins = new Bitmap[5];
+    public final Bitmap[] menuRocks = new Bitmap[4];
 
     public Bitmap slowMoBtnActive;
     public Bitmap slowMoBtnInactive;
@@ -149,10 +152,22 @@ public class SpriteCache {
             bgClouds[i] = loadTrimmed(bgNames[i]);
         }
 
-        // World Scenes & UI Buttons
-        worldScenes[0] = loadRaw("bluesky_loading.png");
-        worldScenes[1] = loadRaw("sodasunset_loading.png");
-        worldScenes[2] = loadRaw("bonus_loading.png");
+        // Main Menu Wallpaper & Parallax Ruin/Rock Layers
+        menuWallpaper = loadRaw("menu_wallpaper.jpg");
+        for (int i = 0; i < 5; i++) {
+            menuRuins[i] = loadRaw("menu_ruin_0" + (i + 1) + ".png");
+        }
+        for (int i = 0; i < 4; i++) {
+            menuRocks[i] = loadRaw("menu_rock_0" + (i + 1) + ".png");
+        }
+
+        // World Scenes & UI Buttons (use Orion's post-apocalyptic artwork for World cards)
+        worldScenes[0] = getStorySlide(1);
+        worldScenes[1] = getStorySlide(5);
+        worldScenes[2] = getStorySlide(10);
+        if (worldScenes[0] == null) worldScenes[0] = loadRaw("bluesky_loading.png");
+        if (worldScenes[1] == null) worldScenes[1] = loadRaw("sodasunset_loading.png");
+        if (worldScenes[2] == null) worldScenes[2] = loadRaw("bonus_loading.png");
         slowMoBtnActive = loadTrimmed("SlowMoButton_Active.png");
         slowMoBtnInactive = loadTrimmed("SlowMoButton_Inactive.png");
         btnBackImg = loadTrimmed("button_back.png");

@@ -117,8 +117,9 @@ public class MainActivity extends Activity implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER && gameView != null) {
-            float tilt = event.values[1] / 4.2f;
-            gameView.setTiltInput(tilt);
+            float tiltX = event.values[1] / 4.2f;
+            float tiltY = (event.values[0] - 5.2f) / 4.2f;
+            gameView.setTiltInput(tiltX, tiltY);
         }
     }
 

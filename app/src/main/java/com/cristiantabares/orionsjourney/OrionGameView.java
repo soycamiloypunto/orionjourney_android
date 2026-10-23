@@ -50,6 +50,9 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
     private boolean langEs = true; // Español default, toggleable on Main Menu
     private boolean slowMoActive = false;
     private float tiltInputX = 0f;
+    private float tiltInputY = 0f;
+    private float parallaxX = 0f;
+    private float parallaxY = 0f;
 
     // Progress persistence & 90% ring requirement
     private final int[] bestRings = new int[37];
@@ -208,7 +211,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
 
         getHolder().addCallback(this);
         setFocusable(true);
-        audio.playMusic("menu.mp3", true);
+        audio.playMusic("menu_orion.wav", true);
     }
 
     @Override
@@ -297,6 +300,11 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         this.tiltInputX = Math.max(-1f, Math.min(1f, tiltX));
     }
 
+    public void setTiltInput(float tiltX, float tiltY) {
+        this.tiltInputX = Math.max(-1f, Math.min(1f, tiltX));
+        this.tiltInputY = Math.max(-1f, Math.min(1f, tiltY));
+    }
+
     public boolean handleBackPress() {
         if (gameState == STATE_STORY_CUTSCENE) {
             if (storyBeatIndex > 0) {
@@ -310,7 +318,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                 audio.playSfx("Menu_Click24.wav");
             } else {
                 gameState = STATE_LEVEL_SELECT;
-                audio.playMusic("menu.mp3", true);
+                audio.playMusic("menu_orion.wav", true);
                 audio.playSfx("Menu_Click24.wav");
             }
             return true;
@@ -324,7 +332,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             return true;
         } else if (gameState == STATE_LEVEL_COMPLETE) {
             gameState = STATE_LEVEL_SELECT;
-            audio.playMusic("menu.mp3", true);
+            audio.playMusic("menu_orion.wav", true);
             return true;
         } else if (gameState == STATE_LEVEL_SELECT) {
             gameState = STATE_WORLD_SELECT;
@@ -476,6 +484,9 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
 
     private void update(float dtSec) {
         animClock += dtSec;
+        float smooth = Math.min(1f, dtSec * 6.5f);
+        parallaxX += (tiltInputX - parallaxX) * smooth;
+        parallaxY += (tiltInputY - parallaxY) * smooth;
         if (statusBannerTimer > 0f) {
             statusBannerTimer = Math.max(0f, statusBannerTimer - dtSec);
         }
@@ -1011,7 +1022,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                         }
                     } else {
                         gameState = STATE_LEVEL_SELECT;
-                        audio.playMusic("menu.mp3", true);
+                        audio.playMusic("menu_orion.wav", true);
                     }
                     return true;
                 }
@@ -1105,7 +1116,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                     prefs.edit().putBoolean("turbo_mode", turboMode).apply();
                 } else if (btnPauseLevels.contains(tx, ty)) {
                     audio.playSfx("Menu_Click24.wav");
-                    audio.playMusic("menu.mp3", true);
+                    audio.playMusic("menu_orion.wav", true);
                     gameState = STATE_LEVEL_SELECT;
                 }
             }
@@ -1131,7 +1142,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                     startLevel(currentLevelNum);
                 } else if (btnWinLevels.contains(tx, ty)) {
                     audio.playSfx("Menu_Click24.wav");
-                    audio.playMusic("menu.mp3", true);
+                    audio.playMusic("menu_orion.wav", true);
                     gameState = STATE_LEVEL_SELECT;
                 }
             }
@@ -1276,166 +1287,292 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         }
     }
 
-    private void renderMainMenu(Canvas canvas, int w, int h) {
-        // Clean sky gradient background
-        paint.setShader(new LinearGradient(0, 0, 0, h,
-                Color.rgb(4, 105, 185), Color.rgb(90, 185, 250), Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, w, h, paint);
-        paint.setShader(null);
+    private void drawParallaxBackdrop(Canvas canvas, int w, int h, int wallpaperAlpha, boolean includeMidRuins) {
+        canvas.drawColor(Color.rgb(18, 15, 13));
 
-        // Soft drifting clouds in the sky (only pure cloud sprites 0..2, no trees/cannons/logos)
-        for (int i = 0; i < 6; i++) {
-            Bitmap cloud = sprites.bgClouds[i % 3];
-            if (cloud != null) {
-                float cx = ((i * 360f + animClock * (22f + i * 6f)) % (w + 420f)) - 210f;
-                float cy = h * (0.14f + (i % 3) * 0.26f);
-                drawBitmapCentered(canvas, cloud, cx, cy, 0.72f, 0.72f, 0f, 185);
+        // Layer 0: Deep Shattered-Moon & Desert Wallpaper (slowest parallax)
+        if (sprites.menuWallpaper != null) {
+            float bleedX = w * 0.055f;
+            float bleedY = h * 0.055f;
+            float shiftX = -parallaxX * w * 0.026f;
+            float shiftY = -parallaxY * h * 0.024f;
+            rect.set(-bleedX + shiftX, -bleedY + shiftY, w + bleedX + shiftX, h + bleedY + shiftY);
+            paint.setAlpha(wallpaperAlpha);
+            canvas.drawBitmap(sprites.menuWallpaper, null, rect, paint);
+            paint.setAlpha(255);
+        } else {
+            paint.setShader(new LinearGradient(0, 0, 0, h,
+                    Color.rgb(42, 34, 28), Color.rgb(18, 14, 12), Shader.TileMode.CLAMP));
+            canvas.drawRect(0, 0, w, h, paint);
+            paint.setShader(null);
+        }
+
+        if (includeMidRuins) {
+            // Layer 1: Far Horizon Levitating Ruined Structures (depth = 0.050)
+            Bitmap r1 = sprites.menuRuins[1];
+            if (r1 != null) {
+                float sc = (h * 0.42f) / r1.getHeight();
+                float bob = (float) Math.sin(animClock * 0.85f + 0.5f) * (h * 0.010f);
+                float cx = w * 0.24f - parallaxX * w * 0.048f;
+                float cy = h * 0.43f - parallaxY * h * 0.040f + bob;
+                float rot = -6f + (float) Math.sin(animClock * 0.55f) * 1.6f;
+                drawBitmapCentered(canvas, r1, cx, cy, sc, sc, rot, 195);
+            }
+            Bitmap r3 = sprites.menuRuins[3];
+            if (r3 != null) {
+                float sc = (h * 0.38f) / r3.getHeight();
+                float bob = (float) Math.sin(animClock * 0.78f + 2.1f) * (h * 0.011f);
+                float cx = w * 0.79f - parallaxX * w * 0.054f;
+                float cy = h * 0.41f - parallaxY * h * 0.045f + bob;
+                float rot = 4f + (float) Math.cos(animClock * 0.60f) * 1.5f;
+                drawBitmapCentered(canvas, r3, cx, cy, sc, sc, rot, 205);
+            }
+            Bitmap r2 = sprites.menuRuins[2];
+            if (r2 != null) {
+                float sc = (h * 0.25f) / r2.getHeight();
+                float bob = (float) Math.sin(animClock * 1.05f + 3.4f) * (h * 0.012f);
+                float cx = w * 0.34f - parallaxX * w * 0.064f;
+                float cy = h * 0.22f - parallaxY * h * 0.052f + bob;
+                float rot = -11f + (float) Math.sin(animClock * 0.70f) * 2.0f;
+                drawBitmapCentered(canvas, r2, cx, cy, sc, sc, rot, 175);
+            }
+
+            // Layer 2: Mid-ground Flanking Levitating Ruined Towers (depth = 0.082)
+            Bitmap r0 = sprites.menuRuins[0];
+            if (r0 != null) {
+                float sc = (h * 0.62f) / r0.getHeight();
+                float bob = (float) Math.sin(animClock * 1.10f) * (h * 0.014f);
+                float cx = w * 0.075f - parallaxX * w * 0.082f;
+                float cy = h * 0.50f - parallaxY * h * 0.068f + bob;
+                float rot = 5f + (float) Math.sin(animClock * 0.65f) * 1.8f;
+                drawBitmapCentered(canvas, r0, cx, cy, sc, sc, rot, 235);
+            }
+            Bitmap r4 = sprites.menuRuins[4];
+            if (r4 != null) {
+                float sc = (h * 0.56f) / r4.getHeight();
+                float bob = (float) Math.sin(animClock * 0.95f + 1.7f) * (h * 0.015f);
+                float cx = w * 0.925f - parallaxX * w * 0.088f;
+                float cy = h * 0.54f - parallaxY * h * 0.072f + bob;
+                float rot = -4f + (float) Math.cos(animClock * 0.72f) * 1.9f;
+                drawBitmapCentered(canvas, r4, cx, cy, sc, sc, rot, 235);
             }
         }
 
-        // Stylized title: ORION'S JOURNEY
-        textPaint.setTextAlign(Paint.Align.CENTER);
-        textPaint.setTextSize(h * 0.108f);
-        textPaint.setColor(Color.argb(160, 0, 30, 70));
-        canvas.drawText("ORION'S JOURNEY", w * 0.5f + 4f, h * 0.23f + 5f, textPaint);
-        textPaint.setColor(Color.WHITE);
-        canvas.drawText("ORION'S JOURNEY", w * 0.5f, h * 0.23f, textPaint);
+        // Layer 3: Foreground Zero-Gravity Levitating Rocks & Rubble Shards (depth = 0.095 .. 0.135)
+        float[] rockNormX = {0.16f, 0.31f, 0.46f, 0.66f, 0.74f, 0.85f, 0.21f, 0.81f};
+        float[] rockNormY = {0.19f, 0.34f, 0.14f, 0.17f, 0.31f, 0.20f, 0.68f, 0.73f};
+        float[] rockScale = {0.52f, 0.38f, 0.32f, 0.44f, 0.36f, 0.54f, 0.48f, 0.50f};
+        float[] rockDepth = {0.095f, 0.075f, 0.068f, 0.082f, 0.090f, 0.115f, 0.125f, 0.132f};
+        float[] rockBaseRot = {-14f, 22f, -28f, 15f, -8f, 19f, 12f, -21f};
 
-        textPaint.setTextSize(h * 0.034f);
-        textPaint.setColor(Color.rgb(255, 235, 130));
-        canvas.drawText(langEs ? "EL VIAJE DE ORION" : "THE JOURNEY OF ORION", w * 0.5f, h * 0.30f, textPaint);
-
-        // Play button
-        float btnW = w * 0.28f;
-        float btnH = h * 0.125f;
-        btnPlay.set(w * 0.5f - btnW * 0.5f, h * 0.37f, w * 0.5f + btnW * 0.5f, h * 0.37f + btnH);
-        String playLabel = langEs ? "JUGAR" : "PLAY";
-        if (sprites.playBtn != null) {
-            canvas.drawBitmap(sprites.playBtn, null, btnPlay, paint);
-            textPaint.setColor(Color.WHITE);
-            textPaint.setTextSize(h * 0.052f);
-            textPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText(playLabel, btnPlay.centerX(), btnPlay.centerY() + h * 0.018f, textPaint);
-        } else {
-            drawStylizedButton(canvas, btnPlay, Color.rgb(46, 204, 113), playLabel, h * 0.052f);
+        for (int i = 0; i < 8; i++) {
+            Bitmap rock = sprites.menuRocks[i % 4];
+            if (rock != null) {
+                float depth = rockDepth[i];
+                float bobY = (float) Math.sin(animClock * (1.25f + (i % 3) * 0.22f) + i * 1.3f) * (h * 0.016f);
+                float bobX = (float) Math.cos(animClock * (0.85f + (i % 2) * 0.18f) + i * 0.9f) * (w * 0.006f);
+                float cx = w * rockNormX[i] - parallaxX * w * depth + bobX;
+                float cy = h * rockNormY[i] - parallaxY * h * (depth * 0.85f) + bobY;
+                float sc = ((h * 0.12f) / rock.getHeight()) * rockScale[i];
+                float rot = rockBaseRot[i] + (float) Math.sin(animClock * 0.8f + i) * 5.5f;
+                int alpha = includeMidRuins ? 225 : 135;
+                drawBitmapCentered(canvas, rock, cx, cy, sc, sc, rot, alpha);
+            }
         }
 
-        // Row 1 buttons: Suit Change, Turbo Mode, Language
+        // Layer 4: Foreground Cosmic Amber & Cyan Dust Motes (strongest parallax = 0.15)
+        for (int i = 0; i < 14; i++) {
+            float seedX = ((i * 197 + 43) % 100) / 100f;
+            float seedY = ((i * 131 + 19) % 100) / 100f;
+            float driftY = (float) Math.sin(animClock * 0.9f + i) * (h * 0.02f);
+            float dx = w * seedX - parallaxX * w * (0.11f + (i % 4) * 0.015f);
+            float dy = h * seedY - parallaxY * h * (0.09f + (i % 4) * 0.012f) + driftY;
+            boolean cyanMote = (i % 4 == 0);
+            int moteAlpha = 85 + (int) (55f * Math.sin(animClock * 2.1f + i));
+            paint.setColor(cyanMote
+                    ? Color.argb(moteAlpha, 76, 232, 245)
+                    : Color.argb(moteAlpha, 232, 192, 125));
+            canvas.drawCircle(dx, dy, h * (0.0035f + (i % 3) * 0.0018f), paint);
+        }
+    }
+
+    private void renderMainMenu(Canvas canvas, int w, int h) {
+        // Multi-layer Parallax Wallpaper + Levitating Ruined Buildings & Zero-Gravity Rocks
+        drawParallaxBackdrop(canvas, w, h, 255, true);
+
+        // Subtle dark atmospheric vignette behind UI so text and buttons read with high contrast
+        paint.setShader(new LinearGradient(0, 0, 0, h,
+                Color.argb(115, 14, 11, 9),
+                Color.argb(165, 16, 13, 11),
+                Shader.TileMode.CLAMP));
+        canvas.drawRect(0, 0, w, h, paint);
+        paint.setShader(null);
+
+        // Stylized title: ORION'S JOURNEY (with slight inverse UI parallax for 3D depth)
+        float uiShiftX = parallaxX * w * 0.008f;
+        float uiShiftY = parallaxY * h * 0.008f;
+
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(h * 0.104f);
+        textPaint.setColor(Color.argb(215, 12, 9, 7));
+        canvas.drawText("ORION'S JOURNEY", w * 0.5f + uiShiftX + 4f, h * 0.21f + uiShiftY + 5f, textPaint);
+        textPaint.setColor(Color.rgb(242, 234, 220)); // Aged Ceramic Ivory (#F2EADC)
+        canvas.drawText("ORION'S JOURNEY", w * 0.5f + uiShiftX, h * 0.21f + uiShiftY, textPaint);
+
+        // Subtitle in Bioluminescent Cyan (#4CE8F5) with dark shadow
+        textPaint.setTextSize(h * 0.033f);
+        textPaint.setColor(Color.argb(200, 10, 14, 18));
+        canvas.drawText(langEs ? "EL VIAJE DE ORION" : "THE JOURNEY OF ORION",
+                w * 0.5f + uiShiftX + 2f, h * 0.28f + uiShiftY + 3f, textPaint);
+        textPaint.setColor(Color.rgb(76, 232, 245));
+        canvas.drawText(langEs ? "EL VIAJE DE ORION" : "THE JOURNEY OF ORION",
+                w * 0.5f + uiShiftX, h * 0.28f + uiShiftY, textPaint);
+
+        // Primary Action Button: PLAY / JUGAR (Bioluminescent Emerald-Teal + Brass/Cyan rim)
+        float btnW = w * 0.29f;
+        float btnH = h * 0.122f;
+        btnPlay.set(w * 0.5f - btnW * 0.5f, h * 0.35f, w * 0.5f + btnW * 0.5f, h * 0.35f + btnH);
+        String playLabel = langEs ? "▶  JUGAR" : "▶  PLAY";
+        drawStylizedButton(canvas, btnPlay, Color.rgb(30, 134, 112), playLabel, h * 0.048f);
+
+        // Row 1 buttons: Suit Change, Turbo Mode, Language (Cutscene Obsidian & Bronze Palette)
         float subW = w * 0.27f;
-        float subH = h * 0.108f;
-        float row1Y = h * 0.55f;
+        float subH = h * 0.106f;
+        float row1Y = h * 0.535f;
 
         String suitName = langEs ? SUIT_NAMES_ES[selectedSuitIndex] : SUIT_NAMES_EN[selectedSuitIndex];
         btnSuitSelect.set(w * 0.07f, row1Y, w * 0.07f + subW, row1Y + subH);
-        drawStylizedButton(canvas, btnSuitSelect, Color.rgb(230, 126, 34),
-                (langEs ? "TRAJE: " : "SUIT: ") + suitName, h * 0.029f);
+        drawStylizedButton(canvas, btnSuitSelect, Color.rgb(122, 76, 42),
+                (langEs ? "TRAJE: " : "SUIT: ") + suitName, h * 0.028f);
         Bitmap suitBmp = sprites.orionSuits[selectedSuitIndex];
         if (suitBmp != null) {
-            float iconScale = (subH * 0.70f) / suitBmp.getHeight();
+            float iconScale = (subH * 0.68f) / suitBmp.getHeight();
             drawBitmapCentered(canvas, suitBmp, btnSuitSelect.left + subH * 0.44f, btnSuitSelect.centerY(), iconScale, iconScale, 0f, 255);
         }
 
         btnTurboToggle.set(w * 0.5f - subW * 0.5f, row1Y, w * 0.5f + subW * 0.5f, row1Y + subH);
         drawStylizedButton(canvas, btnTurboToggle,
-                turboMode ? Color.rgb(230, 110, 20) : Color.rgb(52, 73, 94),
+                turboMode ? Color.rgb(184, 96, 32) : Color.rgb(42, 48, 54),
                 langEs ? (turboMode ? "TURBO: SÍ 🔥" : "TURBO: NO") : (turboMode ? "TURBO: ON 🔥" : "TURBO: OFF"),
-                h * 0.029f);
+                h * 0.028f);
 
         btnLanguage.set(w * 0.93f - subW, row1Y, w * 0.93f, row1Y + subH);
-        drawStylizedButton(canvas, btnLanguage, Color.rgb(41, 128, 185),
-                langEs ? "IDIOMA: ESPAÑOL 🌐" : "LANG: ENGLISH 🌐", h * 0.029f);
+        drawStylizedButton(canvas, btnLanguage, Color.rgb(38, 68, 86),
+                langEs ? "IDIOMA: ESPAÑOL 🌐" : "LANG: ENGLISH 🌐", h * 0.028f);
 
         // Row 2 buttons: Control Mode & Sound
-        float row2Y = h * 0.69f;
+        float row2Y = h * 0.68f;
         btnControlMode.set(w * 0.20f, row2Y, w * 0.20f + subW, row2Y + subH);
-        drawStylizedButton(canvas, btnControlMode, Color.rgb(52, 152, 219),
+        drawStylizedButton(canvas, btnControlMode, Color.rgb(64, 52, 44),
                 langEs ? ("CONTROL: " + (tiltControls ? "INCLINAR" : "TÁCTIL"))
-                       : ("CONTROL: " + (tiltControls ? "TILT" : "TOUCH")), h * 0.029f);
+                       : ("CONTROL: " + (tiltControls ? "TILT" : "TOUCH")), h * 0.028f);
 
         btnSound.set(w * 0.80f - subW, row2Y, w * 0.80f, row2Y + subH);
-        drawStylizedButton(canvas, btnSound, audio.isMuted() ? Color.rgb(192, 57, 43) : Color.rgb(155, 89, 182),
+        drawStylizedButton(canvas, btnSound, audio.isMuted() ? Color.rgb(118, 42, 36) : Color.rgb(86, 62, 44),
                 langEs ? (audio.isMuted() ? "SONIDO: NO" : "SONIDO: SÍ")
-                       : (audio.isMuted() ? "SOUND: OFF" : "SOUND: ON"), h * 0.029f);
+                       : (audio.isMuted() ? "SOUND: OFF" : "SOUND: ON"), h * 0.028f);
 
-        // Director & studio credit footer
-        textPaint.setColor(Color.argb(235, 255, 255, 255));
-        textPaint.setTextSize(h * 0.028f);
+        // Director & studio credit pill footer
+        RectF creditBar = new RectF(w * 0.16f, h * 0.875f, w * 0.84f, h * 0.955f);
+        paint.setColor(Color.argb(190, 20, 16, 14));
+        canvas.drawRoundRect(creditBar, 16f, 16f, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(2f);
+        paint.setColor(Color.argb(160, 175, 132, 85));
+        canvas.drawRoundRect(creditBar, 16f, 16f, paint);
+        paint.setStyle(Paint.Style.FILL);
+
+        textPaint.setColor(Color.rgb(230, 218, 198));
+        textPaint.setTextSize(h * 0.025f);
         textPaint.setTextAlign(Paint.Align.CENTER);
         canvas.drawText(langEs
                 ? "Dirigido por Cristian Camilo Tabares  •  Cristian Camilo Tabares Development"
                 : "Directed by Cristian Camilo Tabares  •  Cristian Camilo Tabares Development",
-                w * 0.5f, h * 0.93f, textPaint);
+                w * 0.5f, creditBar.centerY() + h * 0.009f, textPaint);
     }
 
     private void renderWorldSelect(Canvas canvas, int w, int h) {
-        canvas.drawColor(Color.rgb(14, 75, 135));
+        // Atmospheric parallax background with deep obsidian tint
+        drawParallaxBackdrop(canvas, w, h, 90, false);
+        canvas.drawColor(Color.argb(175, 16, 13, 11));
 
         btnBack.set(w * 0.03f, h * 0.05f, w * 0.17f, h * 0.15f);
-        drawStylizedButton(canvas, btnBack, Color.rgb(231, 76, 60), langEs ? "← MENÚ" : "← MENU", h * 0.033f);
+        drawStylizedButton(canvas, btnBack, Color.rgb(112, 48, 38), langEs ? "← MENÚ" : "← MENU", h * 0.031f);
 
         btnTurboToggle.set(w * 0.73f, h * 0.05f, w * 0.97f, h * 0.15f);
         drawStylizedButton(canvas, btnTurboToggle,
-                turboMode ? Color.rgb(243, 156, 18) : Color.rgb(52, 73, 94),
+                turboMode ? Color.rgb(184, 96, 32) : Color.rgb(42, 48, 54),
                 langEs ? (turboMode ? "MODO TURBO: SÍ 🔥" : "MODO TURBO: NO")
-                       : (turboMode ? "TURBO MODE: ON 🔥" : "TURBO MODE: OFF"), h * 0.030f);
+                       : (turboMode ? "TURBO MODE: ON 🔥" : "TURBO MODE: OFF"), h * 0.028f);
 
-        textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(h * 0.056f);
+        textPaint.setColor(Color.rgb(242, 234, 220));
+        textPaint.setTextSize(h * 0.050f);
         textPaint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(langEs ? "SELECCIONA UN MUNDO" : "SELECT A WORLD", w * 0.45f, h * 0.13f, textPaint);
+        canvas.drawText(langEs ? "CRÓNICAS DEL COSMOS" : "CHRONICLES OF THE COSMOS", w * 0.45f, h * 0.125f, textPaint);
 
         String[] titles = langEs
-                ? new String[]{"1. CIELO AZUL", "2. HORIZONTE OCASO", "3. DIMENSIÓN CAJA"}
-                : new String[]{"1. BLUE SKY", "2. SUNSET HORIZON", "3. BOX DIMENSION"};
+                ? new String[]{"1. DESIERTO DE CENIZA", "2. EL TALLER OLVIDADO", "3. COSMOS SILENCIOSO"}
+                : new String[]{"1. ASHEN DESERT", "2. FORGOTTEN WORKSHOP", "3. SILENT COSMOS"};
         String[] subtitles = langEs
                 ? new String[]{"Niveles 1 – 12 • Jefe I", "Niveles 13 – 24 • Jefe II", "Niveles 25 – 36 • Etapas Extra"}
                 : new String[]{"Levels 1 – 12 • Boss Stage I", "Levels 13 – 24 • Boss Stage II", "Levels 25 – 36 • Bonus Stages"};
-        int[] colors = {
-            Color.rgb(4, 115, 192),
-            Color.rgb(247, 138, 73),
-            Color.rgb(111, 23, 157)
+        int[] cardTopColors = {
+            Color.rgb(62, 44, 30),  // World 1: Rusted Ochre / Desert Iron
+            Color.rgb(46, 34, 28),  // World 2: Architect's Umber Workshop
+            Color.rgb(24, 38, 50)   // World 3: Deep Abyssal Starlight
+        };
+        int[] cardBotColors = {
+            Color.rgb(28, 20, 15),
+            Color.rgb(22, 17, 14),
+            Color.rgb(14, 22, 30)
         };
 
         float cardW = w * 0.28f;
-        float cardH = h * 0.66f;
+        float cardH = h * 0.68f;
         float gap = w * 0.035f;
         float startX = (w - (3 * cardW + 2 * gap)) * 0.5f;
 
         for (int i = 0; i < 3; i++) {
             float x0 = startX + i * (cardW + gap);
-            float y0 = h * 0.22f;
+            float y0 = h * 0.21f;
             worldCards[i].set(x0, y0, x0 + cardW, y0 + cardH);
             boolean unlocked = isWorldUnlocked(i + 1);
 
-            paint.setColor(unlocked ? colors[i] : Color.rgb(45, 58, 75));
-            canvas.drawRoundRect(worldCards[i], 28f, 28f, paint);
+            paint.setShader(new LinearGradient(0, y0, 0, y0 + cardH,
+                    unlocked ? cardTopColors[i] : Color.rgb(30, 28, 26),
+                    unlocked ? cardBotColors[i] : Color.rgb(18, 16, 15),
+                    Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(worldCards[i], 24f, 24f, paint);
+            paint.setShader(null);
+
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(6f);
-            paint.setColor(unlocked ? Color.WHITE : Color.rgb(140, 155, 175));
-            canvas.drawRoundRect(worldCards[i], 28f, 28f, paint);
+            paint.setStrokeWidth(4.5f);
+            paint.setColor(unlocked ? Color.rgb(185, 142, 92) : Color.rgb(85, 78, 72));
+            canvas.drawRoundRect(worldCards[i], 24f, 24f, paint);
             paint.setStyle(Paint.Style.FILL);
 
-            textPaint.setColor(Color.WHITE);
-            textPaint.setTextSize(h * 0.037f);
-            canvas.drawText(titles[i], worldCards[i].centerX(), y0 + cardH * 0.15f, textPaint);
+            textPaint.setColor(unlocked ? Color.rgb(245, 238, 225) : Color.rgb(155, 148, 140));
+            textPaint.setTextSize(h * 0.032f);
+            canvas.drawText(titles[i], worldCards[i].centerX(), y0 + cardH * 0.13f, textPaint);
 
-            textPaint.setTextSize(h * 0.024f);
-            canvas.drawText(subtitles[i], worldCards[i].centerX(), y0 + cardH * 0.25f, textPaint);
+            textPaint.setColor(unlocked ? Color.rgb(210, 180, 140) : Color.rgb(125, 118, 112));
+            textPaint.setTextSize(h * 0.023f);
+            canvas.drawText(subtitles[i], worldCards[i].centerX(), y0 + cardH * 0.22f, textPaint);
 
             Bitmap scene = sprites.worldScenes[i];
             if (scene != null) {
-                RectF imgRect = new RectF(x0 + 14f, y0 + cardH * 0.30f, x0 + cardW - 14f, y0 + cardH * 0.71f);
+                RectF imgRect = new RectF(x0 + 14f, y0 + cardH * 0.27f, x0 + cardW - 14f, y0 + cardH * 0.70f);
                 canvas.drawBitmap(scene, null, imgRect, paint);
                 if (!unlocked) {
-                    paint.setColor(Color.argb(165, 10, 15, 25));
+                    paint.setColor(Color.argb(185, 14, 12, 10));
                     canvas.drawRect(imgRect, paint);
-                    textPaint.setColor(Color.rgb(255, 220, 110));
-                    textPaint.setTextSize(h * 0.036f);
+                    textPaint.setColor(Color.rgb(225, 185, 115));
+                    textPaint.setTextSize(h * 0.032f);
                     canvas.drawText(langEs ? "🔒 BLOQUEADO (90%)" : "🔒 LOCKED (90%)", imgRect.centerX(), imgRect.centerY() + h * 0.012f, textPaint);
                 }
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(3f);
-                paint.setColor(Color.WHITE);
+                paint.setStrokeWidth(2.5f);
+                paint.setColor(unlocked ? Color.rgb(185, 142, 92) : Color.rgb(90, 82, 75));
                 canvas.drawRect(imgRect, paint);
                 paint.setStyle(Paint.Style.FILL);
             }
@@ -1446,47 +1583,51 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                 worldRings += bestRings[l];
                 if (hasMet90Percent(l)) worldCleared90++;
             }
-            textPaint.setColor(Color.rgb(255, 235, 110));
-            textPaint.setTextSize(h * 0.029f);
+            textPaint.setColor(worldCleared90 == 12 ? Color.rgb(76, 232, 245) : Color.rgb(232, 195, 120));
+            textPaint.setTextSize(h * 0.027f);
             canvas.drawText((langEs ? "Completados (≥90%): " : "Cleared (≥90%): ") + worldCleared90 + " / 12",
                     worldCards[i].centerX(), y0 + cardH * 0.82f, textPaint);
-            canvas.drawText((langEs ? "Aros: " : "Rings: ") + worldRings, worldCards[i].centerX(), y0 + cardH * 0.92f, textPaint);
+            textPaint.setColor(Color.rgb(215, 205, 190));
+            canvas.drawText((langEs ? "Aros recolectados: " : "Rings collected: ") + worldRings,
+                    worldCards[i].centerX(), y0 + cardH * 0.92f, textPaint);
         }
     }
 
     private void renderLevelSelect(Canvas canvas, int w, int h) {
-        int[] worldBg = {
-            Color.rgb(4, 115, 192),
-            Color.rgb(247, 138, 73),
-            Color.rgb(111, 23, 157)
+        // Atmospheric parallax background tinted per world using the Cutscene Color Palette
+        drawParallaxBackdrop(canvas, w, h, 85, false);
+        int[] worldTint = {
+            Color.argb(180, 28, 20, 15), // World 1: Ashen Desert Umber
+            Color.argb(185, 22, 16, 14), // World 2: Architect's Workshop Obsidian
+            Color.argb(180, 14, 22, 30)  // World 3: Silent Cosmos Abyssal Blue
         };
-        canvas.drawColor(worldBg[(selectedWorld - 1) % 3]);
+        canvas.drawColor(worldTint[(selectedWorld - 1) % 3]);
 
         btnBack.set(w * 0.03f, h * 0.05f, w * 0.17f, h * 0.15f);
-        drawStylizedButton(canvas, btnBack, Color.rgb(231, 76, 60), langEs ? "← MUNDOS" : "← WORLDS", h * 0.030f);
+        drawStylizedButton(canvas, btnBack, Color.rgb(112, 48, 38), langEs ? "← MUNDOS" : "← WORLDS", h * 0.029f);
 
         btnReplayCutscene.set(w * 0.185f, h * 0.05f, w * 0.345f, h * 0.15f);
-        drawStylizedButton(canvas, btnReplayCutscene, Color.rgb(140, 90, 50), langEs ? "🎬 HISTORIA" : "🎬 STORY", h * 0.028f);
+        drawStylizedButton(canvas, btnReplayCutscene, Color.rgb(122, 76, 42), langEs ? "🎬 HISTORIA" : "🎬 STORY", h * 0.027f);
 
         btnTurboToggle.set(w * 0.75f, h * 0.05f, w * 0.97f, h * 0.15f);
         drawStylizedButton(canvas, btnTurboToggle,
-                turboMode ? Color.rgb(243, 156, 18) : Color.rgb(52, 73, 94),
+                turboMode ? Color.rgb(184, 96, 32) : Color.rgb(42, 48, 54),
                 langEs ? (turboMode ? "MODO TURBO: SÍ 🔥" : "MODO TURBO: NO")
-                       : (turboMode ? "TURBO MODE: ON 🔥" : "TURBO MODE: OFF"), h * 0.028f);
+                       : (turboMode ? "TURBO MODE: ON 🔥" : "TURBO MODE: OFF"), h * 0.027f);
 
         String[] worldNames = langEs
-                ? new String[]{"MUNDO 1: CIELO AZUL", "MUNDO 2: HORIZONTE OCASO", "MUNDO 3: DIMENSIÓN CAJA"}
-                : new String[]{"WORLD 1: BLUE SKY", "WORLD 2: SUNSET HORIZON", "WORLD 3: BOX DIMENSION"};
-        textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(h * 0.042f);
+                ? new String[]{"MUNDO 1: DESIERTO DE CENIZA", "MUNDO 2: TALLER OLVIDADO", "MUNDO 3: COSMOS SILENCIOSO"}
+                : new String[]{"WORLD 1: ASHEN DESERT", "WORLD 2: FORGOTTEN WORKSHOP", "WORLD 3: SILENT COSMOS"};
+        textPaint.setColor(Color.rgb(242, 234, 220));
+        textPaint.setTextSize(h * 0.038f);
         textPaint.setTextAlign(Paint.Align.CENTER);
         canvas.drawText(worldNames[(selectedWorld - 1) % 3], w * 0.545f, h * 0.118f, textPaint);
 
         int cols = 4;
         int rows = 3;
         float btnH = h * 0.225f;
-        float btnW = btnH * 1.05f;
-        float gapX = w * 0.055f;
+        float btnW = btnH * 1.12f;
+        float gapX = w * 0.050f;
         float gapY = h * 0.035f;
         float startX = (w - (cols * btnW + (cols - 1) * gapX)) * 0.5f;
         float startY = h * 0.20f;
@@ -1504,55 +1645,77 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             boolean met90 = hasMet90Percent(lvl);
             int pct = getLevelPercent(lvl);
 
-            Bitmap lvlBtnBmp = sprites.levelSelectBtns[(selectedWorld - 1) % 3];
-            float sqSize = btnH * 0.86f;
+            // Custom Orion Metallic / Observatory Level Card (replaces cartoon square buttons)
             RectF sqRect = new RectF(
-                    levelButtons[i].centerX() - sqSize * 0.5f,
+                    levelButtons[i].left + btnW * 0.06f,
                     y0,
-                    levelButtons[i].centerX() + sqSize * 0.5f,
-                    y0 + sqSize);
-            if (lvlBtnBmp != null) {
-                paint.setAlpha(unlocked ? 255 : 115);
-                canvas.drawBitmap(lvlBtnBmp, null, sqRect, paint);
-                paint.setAlpha(255);
+                    levelButtons[i].right - btnW * 0.06f,
+                    y0 + btnH * 0.74f);
 
-                String lbl = !unlocked ? (lvl + " 🔒") : isBossLvl ? (lvl + " ★") : String.valueOf(lvl);
-                textPaint.setTextSize(h * 0.046f);
-                textPaint.setTextAlign(Paint.Align.CENTER);
-                textPaint.setColor(Color.argb(170, 0, 20, 50));
-                canvas.drawText(lbl, sqRect.centerX() + 3f, sqRect.centerY() + h * 0.016f + 3f, textPaint);
-                textPaint.setColor(unlocked ? Color.WHITE : Color.rgb(210, 215, 225));
-                canvas.drawText(lbl, sqRect.centerX(), sqRect.centerY() + h * 0.016f, textPaint);
+            int topCol, botCol, borderCol;
+            if (!unlocked) {
+                topCol = Color.rgb(32, 29, 27);
+                botCol = Color.rgb(20, 18, 17);
+                borderCol = Color.rgb(78, 72, 66);
+            } else if (met90) {
+                topCol = Color.rgb(28, 72, 74);
+                botCol = Color.rgb(16, 42, 46);
+                borderCol = Color.rgb(76, 232, 245); // Bioluminescent Cyan rim when ≥90% cleared!
+            } else if (isBossLvl) {
+                topCol = Color.rgb(92, 36, 30);
+                botCol = Color.rgb(48, 18, 15);
+                borderCol = Color.rgb(225, 140, 85);
             } else {
-                int cardColor = !unlocked ? Color.rgb(60, 75, 95)
-                        : met90 ? Color.rgb(39, 174, 96)
-                        : isBossLvl ? Color.rgb(192, 57, 43) : Color.rgb(41, 128, 185);
-                drawStylizedButton(canvas, levelButtons[i], cardColor,
-                        !unlocked ? (lvl + " 🔒") : ("LEVEL " + lvl), h * 0.036f);
+                topCol = Color.rgb(58, 44, 34);
+                botCol = Color.rgb(32, 24, 19);
+                borderCol = Color.rgb(185, 142, 92); // Weathered Brass rim
             }
 
-            // Clean bottom score pill below each square button
+            paint.setShader(new LinearGradient(0, sqRect.top, 0, sqRect.bottom, topCol, botCol, Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(sqRect, 18f, 18f, paint);
+            paint.setShader(null);
+
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(unlocked && met90 ? 4.0f : 3.2f);
+            paint.setColor(borderCol);
+            canvas.drawRoundRect(sqRect, 18f, 18f, paint);
+            paint.setStyle(Paint.Style.FILL);
+
+            String lbl = !unlocked ? (lvl + " 🔒") : isBossLvl ? (lvl + " ★") : String.valueOf(lvl);
+            textPaint.setTextSize(h * 0.044f);
+            textPaint.setTextAlign(Paint.Align.CENTER);
+            textPaint.setColor(Color.argb(180, 10, 8, 6));
+            canvas.drawText(lbl, sqRect.centerX() + 2f, sqRect.centerY() + h * 0.016f + 3f, textPaint);
+            textPaint.setColor(unlocked ? Color.rgb(245, 238, 225) : Color.rgb(145, 138, 132));
+            canvas.drawText(lbl, sqRect.centerX(), sqRect.centerY() + h * 0.016f, textPaint);
+
+            // Clean bottom score pill below each card
             RectF pillRect = new RectF(
-                    levelButtons[i].centerX() - btnW * 0.46f,
+                    levelButtons[i].left + btnW * 0.04f,
                     y0 + btnH * 0.72f,
-                    levelButtons[i].centerX() + btnW * 0.46f,
+                    levelButtons[i].right - btnW * 0.04f,
                     y0 + btnH * 0.98f);
-            paint.setColor(Color.argb(180, 10, 25, 45));
-            canvas.drawRoundRect(pillRect, 14f, 14f, paint);
+            paint.setColor(Color.argb(225, 18, 15, 13));
+            canvas.drawRoundRect(pillRect, 12f, 12f, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(2f);
+            paint.setColor(unlocked && met90 ? Color.rgb(76, 232, 245) : Color.rgb(130, 102, 72));
+            canvas.drawRoundRect(pillRect, 12f, 12f, paint);
+            paint.setStyle(Paint.Style.FILL);
 
             if (unlocked) {
                 Bitmap ring = met90 ? sprites.ringGold : sprites.ringOrange;
                 if (ring != null) {
-                    float sc = (pillRect.height() * 0.76f) / ring.getHeight();
+                    float sc = (pillRect.height() * 0.74f) / ring.getHeight();
                     drawBitmapCentered(canvas, ring, pillRect.left + pillRect.width() * 0.20f, pillRect.centerY(), sc, sc, 0f, 255);
                 }
-                textPaint.setColor(met90 ? Color.rgb(110, 255, 145) : Color.rgb(255, 235, 130));
-                textPaint.setTextSize(h * 0.025f);
+                textPaint.setColor(met90 ? Color.rgb(76, 232, 245) : Color.rgb(232, 195, 120));
+                textPaint.setTextSize(h * 0.024f);
                 textPaint.setTextAlign(Paint.Align.CENTER);
                 canvas.drawText(pct + "%" + (met90 ? " ✓" : ""), pillRect.left + pillRect.width() * 0.62f, pillRect.centerY() + h * 0.009f, textPaint);
             } else {
-                textPaint.setColor(Color.rgb(200, 210, 225));
-                textPaint.setTextSize(h * 0.023f);
+                textPaint.setColor(Color.rgb(160, 150, 140));
+                textPaint.setTextSize(h * 0.022f);
                 textPaint.setTextAlign(Paint.Align.CENTER);
                 canvas.drawText("REQ 90%", pillRect.centerX(), pillRect.centerY() + h * 0.008f, textPaint);
             }
@@ -1997,59 +2160,61 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     private void renderPauseOverlay(Canvas canvas, int w, int h) {
-        canvas.drawColor(Color.argb(190, 0, 15, 35));
+        canvas.drawColor(Color.argb(195, 14, 11, 9));
 
         RectF panel = new RectF(w * 0.24f, h * 0.10f, w * 0.76f, h * 0.90f);
-        paint.setColor(Color.rgb(18, 75, 138));
-        canvas.drawRoundRect(panel, 32f, 32f, paint);
+        paint.setShader(new LinearGradient(0, panel.top, 0, panel.bottom,
+                Color.rgb(34, 28, 24), Color.rgb(20, 16, 14), Shader.TileMode.CLAMP));
+        canvas.drawRoundRect(panel, 28f, 28f, paint);
+        paint.setShader(null);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(6f);
-        paint.setColor(Color.WHITE);
-        canvas.drawRoundRect(panel, 32f, 32f, paint);
+        paint.setStrokeWidth(4.5f);
+        paint.setColor(Color.rgb(185, 142, 92));
+        canvas.drawRoundRect(panel, 28f, 28f, paint);
         paint.setStyle(Paint.Style.FILL);
 
-        textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(h * 0.054f);
+        textPaint.setColor(Color.rgb(245, 238, 225));
+        textPaint.setTextSize(h * 0.052f);
         textPaint.setTextAlign(Paint.Align.CENTER);
         canvas.drawText(langEs ? "JUEGO EN PAUSA" : "GAME PAUSED", w * 0.5f, h * 0.22f, textPaint);
 
         float bw = w * 0.36f;
         float bh = h * 0.11f;
         btnPauseResume.set(w * 0.5f - bw * 0.5f, h * 0.28f, w * 0.5f + bw * 0.5f, h * 0.28f + bh);
-        drawStylizedButton(canvas, btnPauseResume, Color.rgb(46, 204, 113), langEs ? "CONTINUAR" : "RESUME", h * 0.036f);
+        drawStylizedButton(canvas, btnPauseResume, Color.rgb(30, 134, 112), langEs ? "▶ CONTINUAR" : "▶ RESUME", h * 0.034f);
 
         btnPauseRestart.set(w * 0.5f - bw * 0.5f, h * 0.43f, w * 0.5f + bw * 0.5f, h * 0.43f + bh);
-        drawStylizedButton(canvas, btnPauseRestart, Color.rgb(243, 156, 18), langEs ? "REINICIAR NIVEL" : "RESTART LEVEL", h * 0.036f);
+        drawStylizedButton(canvas, btnPauseRestart, Color.rgb(148, 92, 42), langEs ? "↻ REINICIAR NIVEL" : "↻ RESTART LEVEL", h * 0.034f);
 
         btnPauseTurbo.set(w * 0.5f - bw * 0.5f, h * 0.58f, w * 0.5f + bw * 0.5f, h * 0.58f + bh);
         drawStylizedButton(canvas, btnPauseTurbo,
-                turboMode ? Color.rgb(230, 110, 20) : Color.rgb(52, 73, 94),
+                turboMode ? Color.rgb(184, 96, 32) : Color.rgb(42, 48, 54),
                 langEs ? (turboMode ? "MODO TURBO: SÍ 🔥" : "MODO TURBO: NO")
-                       : (turboMode ? "TURBO MODE: ON 🔥" : "TURBO MODE: OFF"), h * 0.034f);
+                       : (turboMode ? "TURBO MODE: ON 🔥" : "TURBO MODE: OFF"), h * 0.032f);
 
         btnPauseLevels.set(w * 0.5f - bw * 0.5f, h * 0.73f, w * 0.5f + bw * 0.5f, h * 0.73f + bh);
-        drawStylizedButton(canvas, btnPauseLevels, Color.rgb(231, 76, 60), langEs ? "SALIR A NIVELES" : "EXIT TO LEVELS", h * 0.036f);
+        drawStylizedButton(canvas, btnPauseLevels, Color.rgb(112, 48, 38), langEs ? "← SALIR A NIVELES" : "← EXIT TO LEVELS", h * 0.034f);
     }
 
     private void renderLevelCompleteOverlay(Canvas canvas, int w, int h) {
-        canvas.drawColor(Color.argb(195, 5, 18, 40));
+        canvas.drawColor(Color.argb(200, 14, 11, 9));
 
-        // Clean structured dialog card (no stretched legacy popup texture)
+        // Clean structured dialog card in the Orion Cutscene Palette
         RectF panel = new RectF(w * 0.17f, h * 0.10f, w * 0.83f, h * 0.88f);
         paint.setShader(new LinearGradient(0, panel.top, 0, panel.bottom,
-                Color.rgb(18, 68, 128), Color.rgb(10, 38, 78), Shader.TileMode.CLAMP));
-        canvas.drawRoundRect(panel, 32f, 32f, paint);
+                Color.rgb(36, 28, 24), Color.rgb(20, 16, 14), Shader.TileMode.CLAMP));
+        canvas.drawRoundRect(panel, 28f, 28f, paint);
         paint.setShader(null);
 
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(6f);
-        paint.setColor(Color.rgb(255, 215, 75));
-        canvas.drawRoundRect(panel, 32f, 32f, paint);
+        paint.setStrokeWidth(4.5f);
+        paint.setColor(Color.rgb(185, 142, 92));
+        canvas.drawRoundRect(panel, 28f, 28f, paint);
         paint.setStyle(Paint.Style.FILL);
 
         // Title header
-        textPaint.setColor(Color.rgb(255, 230, 90));
-        textPaint.setTextSize(h * 0.052f);
+        textPaint.setColor(Color.rgb(76, 232, 245));
+        textPaint.setTextSize(h * 0.050f);
         textPaint.setTextAlign(Paint.Align.CENTER);
         canvas.drawText(langEs
                 ? ("¡NIVEL " + currentLevelNum + " COMPLETADO!")
@@ -2071,26 +2236,26 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         textPaint.setTextAlign(Paint.Align.LEFT);
         float statX = w * 0.43f;
 
-        textPaint.setColor(Color.WHITE);
+        textPaint.setColor(Color.rgb(245, 238, 225));
         textPaint.setTextSize(h * 0.040f);
         canvas.drawText((langEs ? "Aros: " : "Rings: ") + collectedRings + " / " + totalLevelRings + " (" + runPct + "%)",
                 statX, h * 0.38f, textPaint);
 
         int mins = ((int) levelTimerSec) / 60;
         int secs = ((int) levelTimerSec) % 60;
-        textPaint.setColor(Color.rgb(210, 230, 255));
+        textPaint.setColor(Color.rgb(215, 195, 168));
         textPaint.setTextSize(h * 0.036f);
         canvas.drawText(String.format((langEs ? "Tiempo: %02d:%02d" : "Time: %02d:%02d"), mins, secs),
                 statX, h * 0.47f, textPaint);
 
         textPaint.setTextSize(h * 0.028f);
         if (bestPct >= 90) {
-            textPaint.setColor(Color.rgb(110, 255, 145));
+            textPaint.setColor(Color.rgb(76, 232, 245));
             canvas.drawText(langEs
                     ? "✓ Meta del 90% alcanzada (Siguiente nivel desbloqueado)"
                     : "✓ 90% goal reached (Next level unlocked)", statX, h * 0.56f, textPaint);
         } else {
-            textPaint.setColor(Color.rgb(255, 195, 85));
+            textPaint.setColor(Color.rgb(232, 185, 105));
             canvas.drawText(langEs
                     ? ("⚠ Requiere 90% (" + reqRings + " aros) para desbloquear el Nivel " + (currentLevelNum + 1))
                     : ("⚠ Requires 90% (" + reqRings + " rings) to unlock Level " + (currentLevelNum + 1)),
@@ -2103,16 +2268,16 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         float y0 = h * 0.70f;
 
         btnWinLevels.set(w * 0.21f, y0, w * 0.21f + bw, y0 + bh);
-        drawStylizedButton(canvas, btnWinLevels, Color.rgb(52, 152, 219),
+        drawStylizedButton(canvas, btnWinLevels, Color.rgb(64, 52, 44),
                 langEs ? "← NIVELES" : "← LEVELS", h * 0.030f);
 
         btnWinReplay.set(w * 0.5f - bw * 0.5f, y0, w * 0.5f + bw * 0.5f, y0 + bh);
-        drawStylizedButton(canvas, btnWinReplay, Color.rgb(243, 156, 18),
+        drawStylizedButton(canvas, btnWinReplay, Color.rgb(148, 92, 42),
                 langEs ? "↻ REINICIAR" : "↻ RESTART", h * 0.030f);
 
         btnWinNext.set(w * 0.79f - bw, y0, w * 0.79f, y0 + bh);
         drawStylizedButton(canvas, btnWinNext,
-                nextUnlocked ? Color.rgb(46, 204, 113) : Color.rgb(95, 110, 125),
+                nextUnlocked ? Color.rgb(30, 134, 112) : Color.rgb(55, 50, 46),
                 nextUnlocked
                         ? (langEs ? "SIGUIENTE →" : "NEXT →")
                         : (langEs ? "🔒 REQ 90%" : "🔒 90% REQ"),
@@ -2120,17 +2285,38 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
     }
 
     private void drawStylizedButton(Canvas canvas, RectF r, int bgColor, String label, float textSize) {
-        paint.setColor(bgColor);
-        canvas.drawRoundRect(r, 22f, 22f, paint);
+        // Subtle drop shadow
+        rect.set(r.left + 2f, r.top + 4f, r.right + 2f, r.bottom + 4f);
+        paint.setColor(Color.argb(145, 8, 6, 5));
+        canvas.drawRoundRect(rect, 18f, 18f, paint);
+
+        // Rich vertical metallic gradient derived from bgColor
+        int rTop = Math.min(255, Color.red(bgColor) + 18);
+        int gTop = Math.min(255, Color.green(bgColor) + 16);
+        int bTop = Math.min(255, Color.blue(bgColor) + 14);
+        int rBot = Math.max(0, Color.red(bgColor) - 22);
+        int gBot = Math.max(0, Color.green(bgColor) - 20);
+        int bBot = Math.max(0, Color.blue(bgColor) - 18);
+
+        paint.setShader(new LinearGradient(0, r.top, 0, r.bottom,
+                Color.rgb(rTop, gTop, bTop), Color.rgb(rBot, gBot, bBot), Shader.TileMode.CLAMP));
+        canvas.drawRoundRect(r, 18f, 18f, paint);
+        paint.setShader(null);
+
+        // Weathered Brass / Bioluminescent Cyan border depending on button tone
+        boolean isTealAction = (Color.green(bgColor) > Color.red(bgColor) + 25);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(4.5f);
-        paint.setColor(Color.WHITE);
-        canvas.drawRoundRect(r, 22f, 22f, paint);
+        paint.setStrokeWidth(3.5f);
+        paint.setColor(isTealAction ? Color.rgb(76, 232, 245) : Color.rgb(185, 142, 92));
+        canvas.drawRoundRect(r, 18f, 18f, paint);
         paint.setStyle(Paint.Style.FILL);
 
-        textPaint.setColor(Color.WHITE);
+        // Warm Ceramic Ivory label with subtle dark text shadow
         textPaint.setTextSize(textSize);
         textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setColor(Color.argb(180, 10, 8, 6));
+        canvas.drawText(label, r.centerX() + 1.5f, r.centerY() + textSize * 0.36f + 2f, textPaint);
+        textPaint.setColor(Color.rgb(245, 238, 225));
         canvas.drawText(label, r.centerX(), r.centerY() + textSize * 0.36f, textPaint);
     }
 
