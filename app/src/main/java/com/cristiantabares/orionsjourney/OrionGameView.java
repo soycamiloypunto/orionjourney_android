@@ -379,7 +379,15 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                 break;
             }
         }
-        audio.playMusic(hasBoss ? "boss_music.mp3" : "gameplay_music.mp3", true);
+        String music;
+        if (hasBoss) {
+            music = "boss_music.mp3";
+        } else if (level.worldNum == 1) {
+            music = "world1_theme.wav";
+        } else {
+            music = "gameplay_music.mp3";
+        }
+        audio.playMusic(music, true);
     }
 
     private void respawnOrion(boolean playSplash) {
@@ -731,7 +739,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             float fdy = orionY - level.finishY;
             if (fdx * fdx + fdy * fdy <= 82f * 82f) {
                 audio.playSfx("GiantPuffleOReached.wav");
-                audio.playMusic("win_music.mp3", false);
+                audio.playMusic("level_complete.wav", false);
                 saveLevelProgress(currentLevelNum, collectedRings);
                 gameState = STATE_LEVEL_COMPLETE;
                 return;
@@ -800,7 +808,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                         o.hitAnim = 1.0f;
                         audio.playSfx("GreenBalloonBump.wav");
                         orionVx *= 0.55f;
-                        orionVy = -28f;
+                        orionVy = -44.8f; // 1.6x stronger bounce (was -28)
                         orionY = o.y - 59f;
                     }
                     break;
@@ -809,7 +817,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                         o.hitAnim = 1.0f;
                         audio.playSfx("PinkBalloonBump.wav");
                         orionVx *= 0.65f;
-                        orionVy = -38f;
+                        orionVy = -60.8f; // 1.6x stronger bounce (was -38)
                         orionY = o.y - 61f;
                     }
                     break;
@@ -2026,13 +2034,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                     drawBitmapCentered(canvas, sprites.greenBalloon, o.x, o.y, 0.90f * hitScale, 0.90f * hitScale, 0f, 255);
                     break;
                 case 9:
-                    if (o.cloudFadeTimer > 0f) {
-                        int alpha = (int) Math.max(0f, (1f - o.cloudFadeTimer * 2.2f) * 255f);
-                        drawBitmapCentered(canvas, sprites.poofyCloudPuff != null ? sprites.poofyCloudPuff : sprites.poofyCloudOrange,
-                                o.x, o.y, 0.85f + o.cloudFadeTimer * 0.5f, 0.85f + o.cloudFadeTimer * 0.5f, 0f, alpha);
-                    } else {
-                        drawBitmapCentered(canvas, sprites.poofyCloudOrange, o.x, o.y, 0.75f, 0.75f, 0f, 240);
-                    }
+                    // Clouds are drawn in a dedicated top layer (after cannons/rings) so they hide what's beneath
                     break;
                 case 10:
                     drawBitmapCentered(canvas, sprites.redBalloon, o.x, o.y, 0.90f * hitScale, 0.90f * hitScale, 0f, 255);
@@ -2166,6 +2168,18 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                 if (sprites.checkpointFlag != null) {
                     drawBitmapCentered(canvas, sprites.checkpointFlag, c.x, c.y - 54f, 0.85f, 0.85f, 0f, 255);
                 }
+            }
+        }
+
+        // Disappearing clouds: top layer, fully opaque so they conceal cannons, rings and objects beneath
+        for (LevelData.ObstacleEntity o : level.obstacles) {
+            if (!o.active || o.isBoss || o.type != 9) continue;
+            if (o.cloudFadeTimer > 0f) {
+                int alpha = (int) Math.max(0f, (1f - o.cloudFadeTimer * 2.2f) * 255f);
+                drawBitmapCentered(canvas, sprites.poofyCloudPuff != null ? sprites.poofyCloudPuff : sprites.poofyCloudOrange,
+                        o.x, o.y, 0.85f + o.cloudFadeTimer * 0.5f, 0.85f + o.cloudFadeTimer * 0.5f, 0f, alpha);
+            } else {
+                drawBitmapCentered(canvas, sprites.poofyCloudOrange, o.x, o.y, 0.75f, 0.75f, 0f, 255);
             }
         }
 
