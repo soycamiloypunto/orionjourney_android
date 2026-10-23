@@ -194,7 +194,7 @@ public class LevelData {
         }
 
         if (data.worldNum >= 3) {
-            // Margin widened from 650 to 1100 so the 1.6x stronger balloon bounce never hits the ceiling
+            // Margin widened from 650 to 1100 so the balloon bounce (1.4x) never hits the ceiling
             data.ceilingY = minY - 1100f;
         } else {
             data.ceilingY = minY - 2500f;

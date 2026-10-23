@@ -808,7 +808,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                         o.hitAnim = 1.0f;
                         audio.playSfx("GreenBalloonBump.wav");
                         orionVx *= 0.55f;
-                        orionVy = -44.8f; // 1.6x stronger bounce (was -28)
+                        orionVy = -39.2f; // 1.4x bounce (was -44.8f at 1.6x, original -28f)
                         orionY = o.y - 59f;
                     }
                     break;
@@ -817,7 +817,7 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
                         o.hitAnim = 1.0f;
                         audio.playSfx("PinkBalloonBump.wav");
                         orionVx *= 0.65f;
-                        orionVy = -60.8f; // 1.6x stronger bounce (was -38)
+                        orionVy = -53.2f; // 1.4x bounce (was -60.8f at 1.6x, original -38f)
                         orionY = o.y - 61f;
                     }
                     break;
