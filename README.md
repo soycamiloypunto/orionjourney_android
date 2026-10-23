@@ -35,10 +35,14 @@ El código fuente principal se encuentra en `app/src/main/java/com/cristiantabar
      - *Amarillo Checkpoint (`cannon_checkpoint.png`)*: Módulo de exploración solar con indicador de bandera y aura holográfica de punto de control al activarse.
      - *Verde Automático (`cannon_green.png`)*: Drone de lanzamiento inmediato con ojo robótico, cables de potencia y boquilla de plasma.
      - *Cañones Desplazables (`Tipos 12, 13, 17, 18, 19, 20, 21, 22`)*: Se trasladan horizontal o verticalmente en el mapa conservando fijo su ángulo de propulsión.
+   - **Atmósfera y Zona de Muerte de Mundo 1**:
+     - *Cielo Cósmico Profundo (`world1_sky.jpg`)*: Reemplaza el antiguo fondo plano/azul por un firmamento estelar con parallax horizontal y vertical suave ante el movimiento de cámara.
+     - *Zona de Muerte de Dunas Ashen (`world1_death_dunes.png`)*: Textura continua y sin costuras (*seamless tiling*) que reproduce crestas orgánicas de arena natural a la altura de caída del nivel, eliminando las líneas rectas horizontales y cajas azules antiguas.
+     - *Estructuras en Ruinas Levitantes (`world1_ruin_01..03.png`)*: Reemplaza las nubes y árboles antiguos de Mundo 1 por rascacielos y torres destruidas con ventanas vacías flotando en ingravidez cósmica.
    - **Obstáculos Interactivos y Jefes**:
      - Rebotadores elásticos, globos de impulso, nubes efímeras, corrientes de viento de ventiladores, resorteras vectoriales (`Slingshot`) y batallas contra naves jefe en los niveles **12** y **24**.
-   - **Menú Principal con Parallax 2D Multicapa y Estética Post-Apocalíptica**:
-     - Fondo ilustrado ([`menu_wallpaper.jpg`](app/src/main/assets/sprites/menu_wallpaper.jpg)) acompañado de **5 capas de profundidad Parallax** controladas en tiempo real por el acelerómetro 2D del dispositivo (`tiltX`, `tiltY`), con estructuras de edificios en ruinas ([`menu_ruin_01..05.png`](app/src/main/assets/sprites/menu_ruin_01.png)) y fragmentos de roca ([`menu_rock_01..04.png`](app/src/main/assets/sprites/menu_rock_01.png)) levitando en gravedad cero junto a partículas de polvo cósmico.
+   - **Menú Principal con Estética Post-Apocalíptica (Estable y Limpio)**:
+     - Fondo ilustrado ([`menu_wallpaper.jpg`](app/src/main/assets/sprites/menu_wallpaper.jpg)) con encuadre estable, estructuras arquitectónicas en ruinas ([`menu_ruin_01..04.png`](app/src/main/assets/sprites/menu_ruin_01.png)) y fragmentos de roca ([`menu_rock_01..04.png`](app/src/main/assets/sprites/menu_rock_01.png)) levitando suavemente en gravedad cero junto a partículas de polvo cósmico. Se desactivó el desplazamiento por inclinación (parallax) y se eliminó el edificio defectuoso del lateral derecho para garantizar una presentación limpia e impecable.
      - Paleta cromática unificada con las cinemáticas (obsidiana `#14100D`, bronce envejecido `#B88A58`, marfil cerámico `#F4EFE6`, verde esmeralda antiguo `#1E826E` y cian bioluminiscente `#4CE8F5`) aplicada en el Menú Principal, Selector de Mundos (*Crónicas del Cosmos*) y Selector de Niveles.
      - Banda sonora orquestal épica y esperanzadora con arpegios estelares ([`menu_orion.wav`](app/src/main/assets/audio/menu_orion.wav)).
    - **Cinemática Narrativa Interactiva (`STATE_STORY_CUTSCENE`)**:
@@ -49,9 +53,9 @@ El código fuente principal se encuentra en `app/src/main/java/com/cristiantabar
      - Selector de idioma en tiempo real (**Español / Inglés**) desde la pantalla principal.
 3. **[`LevelData.java`](app/src/main/java/com/cristiantabares/orionsjourney/LevelData.java)**:
    - Analizador (*parser*) de los **36 niveles** estructurados en archivos de texto plano (`assets/levels/Level1.txt` .. `Level36.txt`), divididos en 3 mundos de 12 niveles cada uno:
-     - **Mundo 1**: *Blue Sky* (Niveles 1–12)
-     - **Mundo 2**: *Sunset Horizon* (Niveles 13–24)
-     - **Mundo 3**: *Box Dimension* (Niveles 25–36)
+     - **Mundo 1**: *Ashen Cosmos* (Niveles 1–12)
+     - **Mundo 2**: *Architect's Workshop* (Niveles 13–24)
+     - **Mundo 3**: *Silent Void* (Niveles 25–36)
 4. **[`SpriteCache.java`](app/src/main/java/com/cristiantabares/orionsjourney/SpriteCache.java)**:
    - Sistema de caché en memoria `ARGB_8888` que carga sprites individuales, centrados y libres de residuos desde `assets/sprites/`, incluyendo los **10 trajes de Orion** (`orion_suit_01_solar.png` a `orion_suit_10_emerald.png`), los 6 cuadros de animación en fuego (`orion_fire_01..06.png`), cañones, anillos coleccionables, obstáculos y elementos de interfaz.
 5. **[`AudioController.java`](app/src/main/java/com/cristiantabares/orionsjourney/AudioController.java)**:
@@ -65,9 +69,9 @@ El código fuente principal se encuentra en `app/src/main/java/com/cristiantabar
 app/src/main/
 ├── AndroidManifest.xml
 ├── assets/
-│   ├── audio/          # Música de mundos (.mp3), banda sonora orquestal (story_intro.wav) y SFX (.wav)
+│   ├── audio/          # Música de mundos (.mp3), banda sonora orquestal (story_intro.wav, menu_orion.wav) y SFX (.wav)
 │   ├── levels/         # Definición de coordenadas y entidades de los 36 niveles (Level1.txt - Level36.txt)
-│   ├── sprites/        # Sprites individuales en PNG (Personaje Orion, trajes, cañones, obstáculos y UI)
+│   ├── sprites/        # Sprites individuales en PNG (Personaje Orion, trajes, cañones, ruinas, dunas y UI)
 │   └── story/          # Planos ilustrados de la cinemática (plano1.jpg - plano10.jpg) y guion (historia.txt)
 ├── java/com/cristiantabares/orionsjourney/
 │   ├── AudioController.java

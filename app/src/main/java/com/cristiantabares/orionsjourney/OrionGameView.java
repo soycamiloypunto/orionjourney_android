@@ -1290,13 +1290,9 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
     private void drawParallaxBackdrop(Canvas canvas, int w, int h, int wallpaperAlpha, boolean includeMidRuins) {
         canvas.drawColor(Color.rgb(18, 15, 13));
 
-        // Layer 0: Deep Shattered-Moon & Desert Wallpaper (slowest parallax)
+        // Layer 0: Deep Shattered-Moon & Desert Wallpaper (Static, clean framing)
         if (sprites.menuWallpaper != null) {
-            float bleedX = w * 0.055f;
-            float bleedY = h * 0.055f;
-            float shiftX = -parallaxX * w * 0.026f;
-            float shiftY = -parallaxY * h * 0.024f;
-            rect.set(-bleedX + shiftX, -bleedY + shiftY, w + bleedX + shiftX, h + bleedY + shiftY);
+            rect.set(0, 0, w, h);
             paint.setAlpha(wallpaperAlpha);
             canvas.drawBitmap(sprites.menuWallpaper, null, rect, paint);
             paint.setAlpha(255);
@@ -1308,13 +1304,13 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         }
 
         if (includeMidRuins) {
-            // Layer 1: Far Horizon Levitating Ruined Structures (depth = 0.050)
+            // Layer 1: Horizon Levitating Ruined Structures (calm, stable zero-gravity float)
             Bitmap r1 = sprites.menuRuins[1];
             if (r1 != null) {
                 float sc = (h * 0.42f) / r1.getHeight();
                 float bob = (float) Math.sin(animClock * 0.85f + 0.5f) * (h * 0.010f);
-                float cx = w * 0.24f - parallaxX * w * 0.048f;
-                float cy = h * 0.43f - parallaxY * h * 0.040f + bob;
+                float cx = w * 0.24f;
+                float cy = h * 0.43f + bob;
                 float rot = -6f + (float) Math.sin(animClock * 0.55f) * 1.6f;
                 drawBitmapCentered(canvas, r1, cx, cy, sc, sc, rot, 195);
             }
@@ -1322,8 +1318,8 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             if (r3 != null) {
                 float sc = (h * 0.38f) / r3.getHeight();
                 float bob = (float) Math.sin(animClock * 0.78f + 2.1f) * (h * 0.011f);
-                float cx = w * 0.79f - parallaxX * w * 0.054f;
-                float cy = h * 0.41f - parallaxY * h * 0.045f + bob;
+                float cx = w * 0.79f;
+                float cy = h * 0.41f + bob;
                 float rot = 4f + (float) Math.cos(animClock * 0.60f) * 1.5f;
                 drawBitmapCentered(canvas, r3, cx, cy, sc, sc, rot, 205);
             }
@@ -1331,48 +1327,37 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             if (r2 != null) {
                 float sc = (h * 0.25f) / r2.getHeight();
                 float bob = (float) Math.sin(animClock * 1.05f + 3.4f) * (h * 0.012f);
-                float cx = w * 0.34f - parallaxX * w * 0.064f;
-                float cy = h * 0.22f - parallaxY * h * 0.052f + bob;
+                float cx = w * 0.34f;
+                float cy = h * 0.22f + bob;
                 float rot = -11f + (float) Math.sin(animClock * 0.70f) * 2.0f;
                 drawBitmapCentered(canvas, r2, cx, cy, sc, sc, rot, 175);
             }
 
-            // Layer 2: Mid-ground Flanking Levitating Ruined Towers (depth = 0.082)
+            // Layer 2: Mid-ground Flanking Levitating Ruined Tower (left tower r0, right-side defective building removed)
             Bitmap r0 = sprites.menuRuins[0];
             if (r0 != null) {
                 float sc = (h * 0.62f) / r0.getHeight();
                 float bob = (float) Math.sin(animClock * 1.10f) * (h * 0.014f);
-                float cx = w * 0.075f - parallaxX * w * 0.082f;
-                float cy = h * 0.50f - parallaxY * h * 0.068f + bob;
+                float cx = w * 0.075f;
+                float cy = h * 0.50f + bob;
                 float rot = 5f + (float) Math.sin(animClock * 0.65f) * 1.8f;
                 drawBitmapCentered(canvas, r0, cx, cy, sc, sc, rot, 235);
             }
-            Bitmap r4 = sprites.menuRuins[4];
-            if (r4 != null) {
-                float sc = (h * 0.56f) / r4.getHeight();
-                float bob = (float) Math.sin(animClock * 0.95f + 1.7f) * (h * 0.015f);
-                float cx = w * 0.925f - parallaxX * w * 0.088f;
-                float cy = h * 0.54f - parallaxY * h * 0.072f + bob;
-                float rot = -4f + (float) Math.cos(animClock * 0.72f) * 1.9f;
-                drawBitmapCentered(canvas, r4, cx, cy, sc, sc, rot, 235);
-            }
         }
 
-        // Layer 3: Foreground Zero-Gravity Levitating Rocks & Rubble Shards (depth = 0.095 .. 0.135)
+        // Layer 3: Foreground Zero-Gravity Levitating Rocks & Rubble Shards (stable zero-gravity float)
         float[] rockNormX = {0.16f, 0.31f, 0.46f, 0.66f, 0.74f, 0.85f, 0.21f, 0.81f};
         float[] rockNormY = {0.19f, 0.34f, 0.14f, 0.17f, 0.31f, 0.20f, 0.68f, 0.73f};
         float[] rockScale = {0.52f, 0.38f, 0.32f, 0.44f, 0.36f, 0.54f, 0.48f, 0.50f};
-        float[] rockDepth = {0.095f, 0.075f, 0.068f, 0.082f, 0.090f, 0.115f, 0.125f, 0.132f};
         float[] rockBaseRot = {-14f, 22f, -28f, 15f, -8f, 19f, 12f, -21f};
 
         for (int i = 0; i < 8; i++) {
             Bitmap rock = sprites.menuRocks[i % 4];
             if (rock != null) {
-                float depth = rockDepth[i];
                 float bobY = (float) Math.sin(animClock * (1.25f + (i % 3) * 0.22f) + i * 1.3f) * (h * 0.016f);
                 float bobX = (float) Math.cos(animClock * (0.85f + (i % 2) * 0.18f) + i * 0.9f) * (w * 0.006f);
-                float cx = w * rockNormX[i] - parallaxX * w * depth + bobX;
-                float cy = h * rockNormY[i] - parallaxY * h * (depth * 0.85f) + bobY;
+                float cx = w * rockNormX[i] + bobX;
+                float cy = h * rockNormY[i] + bobY;
                 float sc = ((h * 0.12f) / rock.getHeight()) * rockScale[i];
                 float rot = rockBaseRot[i] + (float) Math.sin(animClock * 0.8f + i) * 5.5f;
                 int alpha = includeMidRuins ? 225 : 135;
@@ -1380,13 +1365,13 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
             }
         }
 
-        // Layer 4: Foreground Cosmic Amber & Cyan Dust Motes (strongest parallax = 0.15)
+        // Layer 4: Foreground Cosmic Amber & Cyan Dust Motes
         for (int i = 0; i < 14; i++) {
             float seedX = ((i * 197 + 43) % 100) / 100f;
             float seedY = ((i * 131 + 19) % 100) / 100f;
             float driftY = (float) Math.sin(animClock * 0.9f + i) * (h * 0.02f);
-            float dx = w * seedX - parallaxX * w * (0.11f + (i % 4) * 0.015f);
-            float dy = h * seedY - parallaxY * h * (0.09f + (i % 4) * 0.012f) + driftY;
+            float dx = w * seedX;
+            float dy = h * seedY + driftY;
             boolean cyanMote = (i % 4 == 0);
             int moteAlpha = 85 + (int) (55f * Math.sin(animClock * 2.1f + i));
             paint.setColor(cyanMote
@@ -1408,9 +1393,9 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         canvas.drawRect(0, 0, w, h, paint);
         paint.setShader(null);
 
-        // Stylized title: ORION'S JOURNEY (with slight inverse UI parallax for 3D depth)
-        float uiShiftX = parallaxX * w * 0.008f;
-        float uiShiftY = parallaxY * h * 0.008f;
+        // Stylized title: ORION'S JOURNEY (Static & crisp)
+        float uiShiftX = 0f;
+        float uiShiftY = 0f;
 
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(h * 0.104f);
@@ -1860,15 +1845,22 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
     private void renderGameplay(Canvas canvas, int w, int h) {
         if (level == null) return;
 
-        int bgColor;
-        if (level.worldNum == 1) {
-            bgColor = Color.rgb(4, 115, 192);
-        } else if (level.worldNum == 2) {
-            bgColor = Color.rgb(247, 138, 73);
+        if (level.worldNum == 1 && sprites.world1Sky != null) {
+            // World 1: Cosmic deep space sky with smooth planetary camera parallax
+            float skyScale = Math.max((float) w / sprites.world1Sky.getWidth(), (float) h / sprites.world1Sky.getHeight()) * 1.35f;
+            float skyW = sprites.world1Sky.getWidth() * skyScale;
+            float skyH = sprites.world1Sky.getHeight() * skyScale;
+            float shiftX = -(camX * 0.045f) % skyW;
+            if (shiftX > 0f) shiftX -= skyW;
+            float shiftY = (h - skyH) * 0.5f - Math.max(-skyH * 0.15f, Math.min(skyH * 0.15f, (camY - level.groundY * 0.5f) * 0.02f));
+            for (float px = shiftX; px < w; px += skyW) {
+                rect.set(px, shiftY, px + skyW, shiftY + skyH);
+                canvas.drawBitmap(sprites.world1Sky, null, rect, null);
+            }
         } else {
-            bgColor = Color.rgb(111, 23, 157);
+            int bgColor = (level.worldNum == 2) ? Color.rgb(247, 138, 73) : Color.rgb(111, 23, 157);
+            canvas.drawColor(bgColor);
         }
-        canvas.drawColor(bgColor);
 
         camZoom = (h / 680f) * userZoomMultiplier;
 
@@ -1877,22 +1869,60 @@ public class OrionGameView extends SurfaceView implements SurfaceHolder.Callback
         canvas.scale(camZoom, camZoom);
         canvas.translate(-camX, -camY);
 
-        // Background Clouds
-        for (LevelData.BgElement bg : level.backgrounds) {
-            Bitmap bmp = sprites.bgClouds[Math.abs(bg.type - 1) % sprites.bgClouds.length];
-            if (bmp != null) {
-                drawBitmapCentered(canvas, bmp, bg.x, bg.y, bg.scaleX * 0.85f, bg.scaleY * 0.85f, 0f, 195);
+        // Background Elements: Levitating Ruined Structures for World 1, or Clouds for World 2/3
+        if (level.worldNum == 1 && sprites.world1Ruins[0] != null) {
+            Bitmap[] ruinsPool = {
+                sprites.world1Ruins[0], sprites.world1Ruins[1], sprites.world1Ruins[2],
+                sprites.menuRuins[0], sprites.menuRuins[1], sprites.menuRuins[2], sprites.menuRuins[3]
+            };
+            for (int i = 0; i < level.backgrounds.size(); i++) {
+                LevelData.BgElement bg = level.backgrounds.get(i);
+                Bitmap rBmp = ruinsPool[(Math.abs(bg.type) + i) % ruinsPool.length];
+                if (rBmp != null) {
+                    float levitateY = (float) Math.sin(animClock * 0.95f + bg.x * 0.0035f + i * 1.4f) * 18f;
+                    float levitateRot = (float) Math.sin(animClock * 0.45f + i * 1.3f) * 2.6f;
+                    float scX = bg.scaleX * 1.05f;
+                    float scY = bg.scaleY * 1.05f;
+                    drawBitmapCentered(canvas, rBmp, bg.x, bg.y + levitateY, scX, scY, levitateRot, 215);
+                }
+            }
+        } else {
+            for (LevelData.BgElement bg : level.backgrounds) {
+                Bitmap bmp = sprites.bgClouds[Math.abs(bg.type - 1) % sprites.bgClouds.length];
+                if (bmp != null) {
+                    drawBitmapCentered(canvas, bmp, bg.x, bg.y, bg.scaleX * 0.85f, bg.scaleY * 0.85f, 0f, 195);
+                }
             }
         }
 
         // Ground / Ceiling FallZone
-        paint.setColor(level.worldNum == 2 ? Color.argb(190, 180, 60, 20)
-                : level.worldNum >= 3 ? Color.argb(190, 55, 10, 90)
-                : Color.argb(190, 0, 65, 130));
-        canvas.drawRect(camX - 4000f, level.groundY, camX + 4000f, level.groundY + 1200f, paint);
-        paint.setColor(Color.argb(210, 255, 255, 255));
-        paint.setStrokeWidth(6f);
-        canvas.drawLine(camX - 4000f, level.groundY, camX + 4000f, level.groundY, paint);
+        if (level.worldNum == 1 && sprites.world1DeathDunes != null) {
+            // Ashen Dunes Death Zone: Organic, seamless sand dunes undulating naturally
+            // The crest of the sand dunes sits around level.groundY
+            float duneH = 460f;
+            float duneW = duneH * ((float) sprites.world1DeathDunes.getWidth() / sprites.world1DeathDunes.getHeight());
+            float topY = level.groundY - 35f;
+            float startTile = (float) Math.floor((camX - 3500f) / duneW) * duneW;
+            float endTile = camX + 3500f;
+
+            // Deep sand bedrock below the dune crests
+            paint.setColor(Color.rgb(138, 118, 92));
+            canvas.drawRect(camX - 3500f, topY + duneH - 4f, camX + 3500f, topY + duneH + 2500f, paint);
+
+            // Undulating, seamless dunes along the death horizon
+            for (float tx = startTile; tx < endTile; tx += duneW) {
+                rect.set(tx, topY, tx + duneW, topY + duneH);
+                canvas.drawBitmap(sprites.world1DeathDunes, null, rect, null);
+            }
+            // Note: NO artificial horizontal line in World 1; the natural dunes form the boundary
+        } else {
+            paint.setColor(level.worldNum == 2 ? Color.argb(190, 180, 60, 20)
+                    : Color.argb(190, 55, 10, 90));
+            canvas.drawRect(camX - 4000f, level.groundY, camX + 4000f, level.groundY + 1200f, paint);
+            paint.setColor(Color.argb(210, 255, 255, 255));
+            paint.setStrokeWidth(6f);
+            canvas.drawLine(camX - 4000f, level.groundY, camX + 4000f, level.groundY, paint);
+        }
 
         if (level.worldNum >= 3) {
             paint.setColor(Color.argb(140, 255, 80, 180));

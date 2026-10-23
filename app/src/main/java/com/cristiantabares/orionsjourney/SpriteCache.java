@@ -48,6 +48,9 @@ public class SpriteCache {
     public Bitmap menuWallpaper;
     public final Bitmap[] menuRuins = new Bitmap[5];
     public final Bitmap[] menuRocks = new Bitmap[4];
+    public Bitmap world1Sky;
+    public Bitmap world1DeathDunes;
+    public final Bitmap[] world1Ruins = new Bitmap[3];
 
     public Bitmap slowMoBtnActive;
     public Bitmap slowMoBtnInactive;
@@ -159,6 +162,13 @@ public class SpriteCache {
         }
         for (int i = 0; i < 4; i++) {
             menuRocks[i] = loadRaw("menu_rock_0" + (i + 1) + ".png");
+        }
+
+        // World 1 Cosmic Sky, Death Sand Dunes & Levitating Ruined Structures
+        world1Sky = loadRaw("world1_sky.jpg");
+        world1DeathDunes = loadRaw("world1_death_dunes.png");
+        for (int i = 0; i < 3; i++) {
+            world1Ruins[i] = loadRaw("world1_ruin_0" + (i + 1) + ".png");
         }
 
         // World Scenes & UI Buttons (use Orion's post-apocalyptic artwork for World cards)
